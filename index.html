@@ -1,241 +1,216 @@
-<!DOCTYPE html>
+
+<!doctype html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale: 1.0">
-    <title>Chronomètre Vitesse</title>
-    <style>
-        /* Styles de base */
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            background-color: #f4f4f4;
-        }
-        h1 {
-            color: #333;
-        }
-        #timer-display {
-            font-size: 2em;
-            margin-bottom: 20px;
-        }
-        #input-controls, #timer-controls {
-            margin-top: 20px;
-        }
-        #input-controls label {
-            margin: 5px;
-            font-size: 16px;
-        }
-        #input-controls input {
-            margin: 5px;
-            font-size: 16px;
-            padding: 10px;
-            width: 250px; /* Augmenté pour une meilleure saisie */
-            max-width: 80%;
-        }
-        /* Styles des boutons */
-        #timer-controls button {
-            padding: 0;
-            font-size: 14px;
-            font-weight: bold;
-            width: 70px; /* Largeur des boutons */
-            height: 70px; /* Hauteur des boutons */
-            border: none;
-            color: white;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-            margin: 0 5px; /* Espacement entre les boutons */
-        }
-        #start-button {
-            background-color: #008CBA; /* Bleu */
-        }
-        #intermediate-button {
-            background-color: #4CAF50; /* Vert */
-        }
-        #stop-button {
-            background-color: #008CBA; /* Bleu */
-        }
-        #reset-button {
-            background-color: #f44336; /* Rouge */
-            border-radius: 5px;
-            padding: 10px 20px;
-            margin-top: 20px; /* Espacement */
-        }
-        #download-button {
-            background-color: #FF9800; /* Orange */
-            border-radius: 5px;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            cursor: pointer;
-            font-weight: bold;
-            margin-top: 10px; /* Espacement */
-        }
-        #results {
-            margin-top: 20px;
-            width: 80%;
-            max-width: 400px;
-        }
-        #results ul {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-        #results li {
-            background: #e0e0e0;
-            margin-bottom: 5px;
-            padding: 10px;
-            border-radius: 5px;
-        }
-        #final-result {
-            margin-top: 20px;
-            padding: 15px;
-            border-radius: 5px;
-            background-color: #D0E8FF;
-            color: #333;
-            font-weight: bold;
-        }
-        .final-time {
-            border: 2px solid blue; /* Encadré bleu */
-            padding: 10px;
-            border-radius: 5px;
-            background-color: #e0f7fa; /* Couleur d'arrière-plan */
-        }
-        #creator {
-            margin-top: 30px;
-            text-align: center;
-            font-size: 0.9em;
-        }
-        #creator a {
-            color: #4CAF50;
-            text-decoration: none;
-        }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mini App – Single File (index.html)</title>
+  <meta name="description" content="Mini application web en un seul fichier: thème sombre, tâches, notes, horloge et formulaire." />
+  <style>
+    :root {
+      --bg: #0f172a; /* slate-900 */
+      --panel: #111827; /* gray-900 */
+      --text: #e5e7eb; /* gray-200 */
+      --muted: #9ca3af; /* gray-400 */
+      --accent: #22c55e; /* green-500 */
+      --accent-2: #3b82f6; /* blue-500 */
+      --danger: #ef4444; /* red-500 */
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial, "Noto Color Emoji", "Apple Color Emoji", sans-serif; background: var(--bg); color: var(--text); }
+    header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 1.25rem; position: sticky; top: 0; background: linear-gradient(180deg, rgba(17,24,39,0.9), rgba(17,24,39,0.7)); backdrop-filter: blur(8px); border-bottom: 1px solid rgba(229,231,235,0.1); }
+    header h1 { font-size: 1rem; margin: 0; letter-spacing: 0.3px; color: var(--muted); }
+    .container { max-width: 1100px; margin: 0 auto; padding: 1rem; }
+    .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1rem; }
+    .card { grid-column: span 12; background: var(--panel); border: 1px solid rgba(229,231,235,0.08); border-radius: 12px; padding: 1rem; box-shadow: 0 6px 24px rgba(0,0,0,0.25); }
+    @media (min-width: 900px){ .span-6 { grid-column: span 6; } .span-4 { grid-column: span 4; } }
+    .card h2 { margin: 0 0 0.75rem; font-size: 1.1rem; color: var(--text); }
+    .muted { color: var(--muted); }
+    .row { display: flex; gap: 0.5rem; align-items: center; }
+    input[type="text"], textarea, input[type="email"] { width: 100%; padding: 0.65rem 0.8rem; border-radius: 10px; border: 1px solid rgba(229,231,235,0.12); background: #0b1220; color: var(--text); outline: none; }
+    input::placeholder, textarea::placeholder { color: #64748b; }
+    button { background: var(--accent-2); color: white; border: none; border-radius: 10px; padding: 0.6rem 0.9rem; cursor: pointer; font-weight: 600; }
+    button.secondary { background: transparent; border: 1px solid rgba(229,231,235,0.18); color: var(--text); }
+    button.danger { background: var(--danger); }
+    .todo-item { display: grid; grid-template-columns: 24px 1fr auto; gap: 0.5rem; align-items: center; padding: 0.5rem; border-radius: 8px; }
+    .todo-item:hover { background: rgba(255,255,255,0.03); }
+    .todo-item input[type="checkbox"] { width: 18px; height: 18px; }
+    .pill { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.25rem 0.5rem; border: 1px solid rgba(229,231,235,0.18); border-radius: 999px; font-size: 0.8rem; color: var(--muted); }
+    .footer { text-align: center; padding: 2rem 1rem; color: var(--muted); }
+    .link { color: var(--accent-2); text-decoration: none; }
+    .link:hover { text-decoration: underline; }
+    .badge { background: rgba(34,197,94,0.12); color: #86efac; border: 1px solid rgba(34,197,94,0.3); padding: 0.25rem 0.5rem; border-radius: 999px; font-size: 0.75rem; }
+    .flex-end { display: flex; justify-content: flex-end; }
+    .list { list-style: none; padding-left: 0; margin: 0; }
+    .list li { margin: 0.25rem 0; }
+  </style>
 </head>
 <body>
-
-    <h1>Chronomètre Vitesse</h1>
-
-    <div id="input-controls">
-        <label for="total-distance">Distance Totale (m) :</label>
-        <input type="number" id="total-distance" value="800">
-        <label for="intermediate-distance">Distance Intermédiaire (m) :</label>
-        <input type="number" id="intermediate-distance" value="200">
+  <header>
+    <h1>Mini App • index.html (single file)</h1>
+    <div class="row">
+      <span class="pill" id="clock">--:--:--</span>
+      <button id="toggleTheme" class="secondary" title="Basculer le thème">Thème</button>
+      <a class="link" href="https://github.com" target="_blank" rel="noopener">GitHub</a>
     </div>
+  </header>
 
-    <div id="timer-display">00:00:00</div>
+  <main class="container">
+    <section class="grid">
+      <article class="card span-6" id="todoCard">
+        <div class="row" style="justify-content: space-between; align-items: baseline;">
+          <h2>✅ Tâches (localStorage)</h2>
+          <span class="badge" id="statsBadge">0 à faire</span>
+        </div>
+        <div class="row">
+          <input id="todoInput" type="text" placeholder="Ajouter une tâche… (Entrée pour valider)" />
+          <button id="addTodo">Ajouter</button>
+          <button id="clearDone" class="secondary">Nettoyer terminées</button>
+        </div>
+        <div style="margin-top:0.75rem">
+          <ul id="todoList" class="list"></ul>
+        </div>
+      </article>
 
-    <div id="timer-controls">
-        <button id="start-button">Démarrer</button>
-        <button id="intermediate-button">Tour</button>
-        <button id="stop-button">Stop</button>
-    </div>
-    
-    <div id="reset-download-controls">
-        <button id="reset-button">Réinitialiser</button>
-        <button id="download-button">Télécharger</button>
-    </div>
+      <article class="card span-6">
+        <h2>📝 Notes rapides</h2>
+        <p class="muted">Écris des notes; elles sont enregistrées automatiquement dans ton navigateur.</p>
+        <textarea id="notes" rows="8" placeholder="Tes notes ici…"></textarea>
+        <div class="flex-end" style="margin-top:0.5rem">
+          <button id="clearNotes" class="danger">Effacer les notes</button>
+        </div>
+      </article>
 
-    <div id="results">
-        <h3>Temps Intermédiaires</h3>
-        <ul id="time-list"></ul>
-        <p id="final-result"></p>
-    </div>
+      <article class="card span-4 span-6">
+        <h2>📦 Démo composant: compteur</h2>
+        <p class="muted">Exemple minimal de composant réactif sans framework.</p>
+        <div class="row">
+          <button id="dec">–</button>
+          <span class="pill" id="count">0</span>
+          <button id="inc">+</button>
+        </div>
+      </article>
 
-    <div id="creator">
-        <p>Créé par Jérôme BARLETTA</p>
-        <a href="http://bjerome.eklablog.com/accueil-c30088056" target="_blank">Accéder au blog</a>
-    </div>
+      <article class="card span-4 span-6">
+        <h2>📨 Formulaire</h2>
+        <p class="muted">Validation côté client (email & champ requis).</p>
+        <form id="contactForm">
+          <label>Nom</label>
+          <input type="text" id="cfName" placeholder="Votre nom" required />
+          <label style="margin-top:0.5rem">Email</label>
+          <input type="email" id="cfEmail" placeholder="vous@domaine.tld" required />
+          <label style="margin-top:0.5rem">Message</label>
+          <textarea id="cfMsg" rows="4" placeholder="Votre message" required></textarea>
+          <div class="row" style="margin-top:0.75rem">
+            <button type="submit">Envoyer</button>
+            <button type="reset" class="secondary">Réinitialiser</button>
+          </div>
+          <p id="cfStatus" class="muted" style="margin-top:0.5rem"></p>
+        </form>
+      </article>
 
-    <script>
-        let startTime = null;
-        let intervalId = null;
-        let intermediateTimes = [];
-        let totalDistance = 800;
-        let intermediateDistance = 200;
-        let currentDistance = 0;
+      <article class="card span-4 span-6">
+        <h2>🌗 Préférences & thème</h2>
+        <p class="muted">Le thème est persisté via <code>localStorage</code>.</p>
+        <ul class="list">
+          <li>• Palette sombre moderne</li>
+          <li>• Éléments accessibles (contraste, focus, tailles)</li>
+          <li>• Composants réactifs vanilla JS</li>
+        </ul>
+      </article>
+    </section>
+  </main>
 
-        const timerDisplay = document.getElementById('timer-display');
-        const timeList = document.getElementById('time-list');
-        const finalResult = document.getElementById('final-result');
+  <footer class="footer">
+    <small>Construit avec ❤️ en un seul fichier. Déploie sur GitHub Pages en quelques clics.</small>
+  </footer>
 
-        const startButton = document.getElementById('start-button');
-        const intermediateButton = document.getElementById('intermediate-button');
-        const stopButton = document.getElementById('stop-button');
-        const resetButton = document.getElementById('reset-button');
-        const downloadButton = document.getElementById('download-button');
+  <script>
+    // Utilitaires
+    const qs = (sel, root=document) => root.querySelector(sel);
+    const qsa = (sel, root=document) => Array.from(root.querySelectorAll(sel));
 
-        const totalDistanceInput = document.getElementById('total-distance');
-        const intermediateDistanceInput = document.getElementById('intermediate-distance');
+    // Horloge
+    function tick() {
+      const d = new Date();
+      const pad = n => String(n).padStart(2,'0');
+      qs('#clock').textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    }
+    setInterval(tick, 1000); tick();
 
-        totalDistanceInput.addEventListener('input', () => {
-            totalDistance = parseInt(totalDistanceInput.value);
-        });
+    // Thème
+    const THEME_KEY = 'app.theme';
+    function applyTheme(theme){
+      const isDark = theme === 'dark';
+      document.body.style.setProperty('--bg', isDark ? '#0f172a' : '#f8fafc');
+      document.body.style.setProperty('--panel', isDark ? '#111827' : '#ffffff');
+      document.body.style.setProperty('--text', isDark ? '#0b1220' : '#0b1220');
+      document.body.style.color = isDark ? '#e5e7eb' : '#0b1220';
+    }
+    const savedTheme = localStorage.getItem(THEME_KEY) || 'dark';
+    applyTheme(savedTheme);
+    qs('#toggleTheme').addEventListener('click', () => {
+      const next = (localStorage.getItem(THEME_KEY) || 'dark') === 'dark' ? 'light' : 'dark';
+      localStorage.setItem(THEME_KEY, next);
+      applyTheme(next);
+    });
 
-        intermediateDistanceInput.addEventListener('input', () => {
-            intermediateDistance = parseInt(intermediateDistanceInput.value);
-        });
+    // Tâches
+    const TODOS_KEY = 'app.todos';
+    const state = { todos: JSON.parse(localStorage.getItem(TODOS_KEY) || '[]'), count: 0 };
+    function persist(){ localStorage.setItem(TODOS_KEY, JSON.stringify(state.todos)); stats(); }
+    function stats(){ const open = state.todos.filter(t => !t.done).length; qs('#statsBadge').textContent = `${open} à faire`; }
+    function render(){
+      const ul = qs('#todoList'); ul.innerHTML = '';
+      state.todos.forEach((t, i) => {
+        const li = document.createElement('li'); li.className = 'todo-item';
+        li.innerHTML = `
+          <input type="checkbox" ${t.done ? 'checked' : ''} aria-label="Cocher la tâche"/>
+          <span style="${t.done ? 'text-decoration: line-through; color: var(--muted);' : ''}">${t.text}</span>
+          <button class="secondary" aria-label="Supprimer">Supprimer</button>
+        `;
+        const [chk, span, del] = li.children;
+        chk.addEventListener('change', () => { state.todos[i].done = chk.checked; persist(); render(); });
+        del.addEventListener('click', () => { state.todos.splice(i,1); persist(); render(); });
+        ul.appendChild(li);
+      });
+      stats();
+    }
+    render();
 
-        function formatTime(seconds) {
-            const hours = Math.floor(seconds / 3600);
-            const minutes = Math.floor((seconds % 3600) / 60);
-            const remainingSeconds = Math.floor(seconds % 60);
-            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
-        }
+    qs('#addTodo').addEventListener('click', addTodo);
+    qs('#todoInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') addTodo(); });
+    qs('#clearDone').addEventListener('click', () => { state.todos = state.todos.filter(t => !t.done); persist(); render(); });
+    function addTodo(){
+      const v = qs('#todoInput').value.trim();
+      if (!v) return; state.todos.push({ text: v, done: false });
+      qs('#todoInput').value = ''; persist(); render();
+    }
 
-        function calculateSpeed(timeInSeconds, distance) {
-            if (timeInSeconds === 0) return 0;
-            return ((distance / timeInSeconds) * 3.6).toFixed(2);
-        }
+    // Notes
+    const NOTES_KEY = 'app.notes';
+    qs('#notes').value = localStorage.getItem(NOTES_KEY) || '';
+    qs('#notes').addEventListener('input', (e) => { localStorage.setItem(NOTES_KEY, e.target.value); });
+    qs('#clearNotes').addEventListener('click', () => { if (confirm('Effacer les notes ?')) { localStorage.removeItem(NOTES_KEY); qs('#notes').value=''; } });
 
-        function updateTimer() {
-            const elapsed = Math.floor((new Date() - startTime) / 1000);
-            timerDisplay.textContent = formatTime(elapsed);
-        }
+    // Compteur
+    function updateCount(){ qs('#count').textContent = String(state.count); }
+    qs('#inc').addEventListener('click', () => { state.count++; updateCount(); });
+    qs('#dec').addEventListener('click', () => { state.count = Math.max(0, state.count-1); updateCount(); });
 
-        startButton.addEventListener('click', () => {
-            if (!intervalId) {
-                startTime = new Date();
-                intervalId = setInterval(updateTimer, 1000);
-                currentDistance = 0;
-                intermediateTimes = [];
-                timeList.innerHTML = '';
-                finalResult.textContent = '';
-            }
-        });
-
-        intermediateButton.addEventListener('click', () => {
-            if (intervalId && currentDistance + intermediateDistance <= totalDistance) {
-                const now = new Date();
-                const elapsed = Math.floor((now - startTime) / 1000);
-                currentDistance += intermediateDistance;
-
-                const speed = calculateSpeed(elapsed, currentDistance);
-                const previousTime = intermediateTimes.length > 0 ? intermediateTimes[intermediateTimes.length - 1].timeInSeconds : 0;
-                const previousSpeed = intermediateTimes.length > 0 ? intermediateTimes[intermediateTimes.length - 1].speed : 0;
-
-                const timeDifference = elapsed - previousTime; // Différence de temps
-                const speedDifference = speed - previousSpeed; // Différence de vitesse
-
-                // Affichage des résultats intermédiaires
-                const timeEntry = document.createElement('li');
-                timeEntry.textContent = `Distance: ${currentDistance}m - Temps: ${formatTime(elapsed)} - Vitesse: ${speed} km/h`;
-                
-                // Ajouter des indicateurs de différences
-                if (intermediateTimes.length > 0) {
-                    if (timeDifference > 0) {
-                        timeEntry.textContent += ` - Différence de temps: +${formatTime(timeDifference)}`;
-                    } else {
-                        timeEntry.textContent += ` - Différence de temps: ${formatTime(-timeDifference)}`;
-                    }
-                    if (speedDifference > 0) {
-                        timeEntry.textContent += ` - Différence de vitesse: +${(speedDifference).toFixed(2)} km/h
+    // Formulaire
+    qs('#contactForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = qs('#cfName').value.trim();
+      const email = qs('#cfEmail').value.trim();
+      const msg = qs('#cfMsg').value.trim();
+      if (!name || !email || !msg) { qs('#cfStatus').textContent = 'Veuillez remplir tous les champs.'; return; }
+      const okEmail = /\S+@\S+\.\S+/.test(email);
+      if (!okEmail) { qs('#cfStatus').textContent = 'Adresse email invalide.'; return; }
+      qs('#cfStatus').textContent = 'Message prêt (démo). Brancher une API pour l’envoi.';
+    });
+  </script>
+</body>
+</html>
+``
