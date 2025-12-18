@@ -3,214 +3,523 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Mini App – Single File (index.html)</title>
-  <meta name="description" content="Mini application web en un seul fichier: thème sombre, tâches, notes, horloge et formulaire." />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Éval Classe – Outil enseignant (iPad friendly)</title>
+  <meta name="description" content="Application web de gestion d'évaluations: import classe, groupes, critères 0-20, compétences à 4 niveaux, terrain, export CSV." />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
   <style>
     :root {
       --bg: #0f172a; /* slate-900 */
-      --panel: #111827; /* gray-900 */
-      --text: #e5e7eb; /* gray-200 */
-      --muted: #9ca3af; /* gray-400 */
-      --accent: #22c55e; /* green-500 */
-      --accent-2: #3b82f6; /* blue-500 */
-      --danger: #ef4444; /* red-500 */
+      --panel: #0b1220; /* deep panel */
+      --card: #111827;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --primary: #3b82f6; /* blue */
+      --success: #16a34a; /* green */
+      --warning: #f59e0b; /* amber */
+      --danger: #ef4444; /* red */
+      --accent: #22c55e;
+      --border: rgba(229,231,235,0.12);
     }
-    * { box-sizing: border-box; }
-    html, body { height: 100%; }
-    body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial, "Noto Color Emoji", "Apple Color Emoji", sans-serif; background: var(--bg); color: var(--text); }
-    header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 1.25rem; position: sticky; top: 0; background: linear-gradient(180deg, rgba(17,24,39,0.9), rgba(17,24,39,0.7)); backdrop-filter: blur(8px); border-bottom: 1px solid rgba(229,231,235,0.1); }
-    header h1 { font-size: 1rem; margin: 0; letter-spacing: 0.3px; color: var(--muted); }
+    *{ box-sizing:border-box }
+    html, body { height:100%; }
+    body { margin:0; background:var(--bg); color:var(--text); font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', Segoe UI, Roboto, Inter, system-ui, sans-serif; }
+    a { color: var(--primary); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    header {
+      position: sticky; top: 0; z-index: 50;
+      background: linear-gradient(180deg, rgba(17,24,39,0.95), rgba(17,24,39,0.7));
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+    }
+    .topbar { display:flex; align-items:center; justify-content:space-between; gap:1rem; padding: 0.75rem 1rem; }
+    .brand { display:flex; align-items:center; gap:0.75rem; }
+    .brand h1{ margin:0; font-size:1rem; color:var(--muted); letter-spacing:0.2px; }
+    .nav { display:flex; gap:0.5rem; align-items:center; }
+    .nav button, .btn { background:var(--primary); color:white; border:none; border-radius:10px; padding:0.55rem 0.85rem; font-weight:600; }
+    .btn.secondary { background: transparent; color: var(--text); border: 1px solid var(--border); }
+    .btn.danger { background: var(--danger); }
+    .btn.success { background: var(--success); }
+    .btn.small { padding:0.4rem 0.6rem; font-size:0.85rem; }
+    .toolbar { display:flex; gap:0.5rem; align-items:center; }
+
     .container { max-width: 1100px; margin: 0 auto; padding: 1rem; }
-    .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1rem; }
-    .card { grid-column: span 12; background: var(--panel); border: 1px solid rgba(229,231,235,0.08); border-radius: 12px; padding: 1rem; box-shadow: 0 6px 24px rgba(0,0,0,0.25); }
-    @media (min-width: 900px){ .span-6 { grid-column: span 6; } .span-4 { grid-column: span 4; } }
-    .card h2 { margin: 0 0 0.75rem; font-size: 1.1rem; color: var(--text); }
-    .muted { color: var(--muted); }
-    .row { display: flex; gap: 0.5rem; align-items: center; }
-    input[type="text"], textarea, input[type="email"] { width: 100%; padding: 0.65rem 0.8rem; border-radius: 10px; border: 1px solid rgba(229,231,235,0.12); background: #0b1220; color: var(--text); outline: none; }
-    input::placeholder, textarea::placeholder { color: #64748b; }
-    button { background: var(--accent-2); color: white; border: none; border-radius: 10px; padding: 0.6rem 0.9rem; cursor: pointer; font-weight: 600; }
-    button.secondary { background: transparent; border: 1px solid rgba(229,231,235,0.18); color: var(--text); }
-    button.danger { background: var(--danger); }
-    .todo-item { display: grid; grid-template-columns: 24px 1fr auto; gap: 0.5rem; align-items: center; padding: 0.5rem; border-radius: 8px; }
-    .todo-item:hover { background: rgba(255,255,255,0.03); }
-    .todo-item input[type="checkbox"] { width: 18px; height: 18px; }
-    .pill { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.25rem 0.5rem; border: 1px solid rgba(229,231,235,0.18); border-radius: 999px; font-size: 0.8rem; color: var(--muted); }
-    .footer { text-align: center; padding: 2rem 1rem; color: var(--muted); }
-    .link { color: var(--accent-2); text-decoration: none; }
-    .link:hover { text-decoration: underline; }
-    .badge { background: rgba(34,197,94,0.12); color: #86efac; border: 1px solid rgba(34,197,94,0.3); padding: 0.25rem 0.5rem; border-radius: 999px; font-size: 0.75rem; }
-    .flex-end { display: flex; justify-content: flex-end; }
-    .list { list-style: none; padding-left: 0; margin: 0; }
-    .list li { margin: 0.25rem 0; }
+    .grid { display:grid; grid-template-columns: repeat(12, 1fr); gap:1rem; }
+    .card { grid-column: span 12; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:1rem; box-shadow: 0 6px 24px rgba(0,0,0,0.25); }
+    .card h2 { margin:0 0 0.5rem; font-size:1.1rem; }
+    .muted{ color: var(--muted); }
+    .pill { display:inline-flex; align-items:center; gap:0.35rem; padding:0.25rem 0.5rem; border:1px solid var(--border); border-radius: 999px; font-size:0.8rem; color:var(--muted); }
+    @media(min-width: 900px){ .span-6{ grid-column: span 6; } .span-4{ grid-column: span 4; } }
+
+    input[type="text"], input[type="number"], input[type="date"], textarea, select {
+      width:100%; background: var(--panel); color: var(--text);
+      border:1px solid var(--border); border-radius:10px; padding:0.6rem 0.8rem; outline:none;
+    }
+    label { display:block; font-size:0.85rem; color:var(--muted); margin-bottom:0.2rem; }
+    .row { display:flex; align-items:center; gap:0.5rem; }
+    .list { list-style:none; margin:0; padding:0; }
+    .list li { margin:0.35rem 0; }
+
+    /* Couleurs validation compétences */
+    .level-0 { background:#1f2937; color:#9ca3af; } /* neutre */
+    .level-1 { background:#3b0d0d; color:#fecaca; } /* rouge */
+    .level-2 { background:#422006; color:#fde68a; } /* orange */
+    .level-3 { background:#064e3b; color:#a7f3d0; } /* vert */
+    .level-4 { background:#052e1f; color:#6ee7b7; } /* vert foncé */
+
+    /* Grille des groupes */
+    .groups { display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:0.75rem; }
+    .group-card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding:0.6rem; min-height: 200px; }
+    .group-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem; }
+    .student { background: var(--card); border:1px solid var(--border); border-radius:10px; padding:0.5rem; margin:0.35rem 0; cursor:grab; user-select:none; }
+    .student:active { cursor:grabbing; }
+    .student .name { font-weight:600; }
+
+    .footer { text-align:center; padding:2rem 1rem; color:var(--muted); }
   </style>
 </head>
 <body>
-  <header>
-    <h1>Mini App • index.html (single file)</h1>
-    <div class="row">
+<header>
+  <div class="topbar">
+    <div class="brand">
       <span class="pill" id="clock">--:--:--</span>
-      <button id="toggleTheme" class="secondary" title="Basculer le thème">Thème</button>
-      <a class="link" href="https://github.com" target="_blank" rel="noopener">GitHub</a>
+      <h1>Éval Classe • Outil enseignant</h1>
     </div>
-  </header>
+    <div class="toolbar">
+      <select id="navSelect" aria-label="Navigation">
+        <option value="#home">Page de garde</option>
+        <option value="#options">Options</option>
+        <option value="#saisie">Saisie</option>
+        <option value="#classe">Classe & Groupes</option>
+      </select>
+      <button id="saveBtn" class="btn secondary">Sauvegarder</button>
+      <button id="exportBtn" class="btn">Exporter CSV</button>
+    </div>
+  </div>
+</header>
 
-  <main class="container">
-    <section class="grid">
-      <article class="card span-6" id="todoCard">
-        <div class="row" style="justify-content: space-between; align-items: baseline;">
-          <h2>✅ Tâches (localStorage)</h2>
-          <span class="badge" id="statsBadge">0 à faire</span>
-        </div>
-        <div class="row">
-          <input id="todoInput" type="text" placeholder="Ajouter une tâche… (Entrée pour valider)" />
-          <button id="addTodo">Ajouter</button>
-          <button id="clearDone" class="secondary">Nettoyer terminées</button>
-        </div>
-        <div style="margin-top:0.75rem">
-          <ul id="todoList" class="list"></ul>
-        </div>
-      </article>
+<main class="container">
+  <!-- Page de garde -->
+  <section id="home" class="grid">
+    <article class="card span-6">
+      <h2>Bienvenue</h2>
+      <p class="muted">Cette application web t'aide pendant les évaluations: importer une classe, créer des groupes par glisser-déposer, noter sur 0–20, valider des compétences en 4 niveaux (rouge, orange, vert, vert foncé), renseigner un terrain, et exporter les résultats en CSV. Elle est utilisable hors-ligne (PWA) et optimisée pour iPad.</p>
+      <ul class="list">
+        <li>• <strong>Import classe</strong> (CSV, copier/coller)</li>
+        <li>• <strong>Groupes</strong> glisser-déposer + menu "Déplacer vers"</li>
+        <li>• <strong>Évaluations</strong>: note 0–20, compétences couleur, terrain atteint</li>
+        <li>• <strong>Paramétrage</strong>: poids/points par compétence (transforme en score)</li>
+        <li>• <strong>Export CSV</strong>: activité, date, classe, tout par élève</li>
+      </ul>
+      <div class="row">
+        <button class="btn success" onclick="navigate('#options')">Commencer</button>
+        <button class="btn secondary" onclick="navigate('#classe')">Gérer les groupes</button>
+      </div>
+    </article>
+    <article class="card span-6">
+      <h2>Importer une classe</h2>
+      <p class="muted">Format CSV simple: <code>Prénom,Nom</code> par ligne. Tu peux aussi coller la liste directement.</p>
+      <label>Nom de la classe</label>
+      <input type="text" id="className" placeholder="Ex: 5eB" />
+      <label style="margin-top:0.5rem">Fichier CSV</label>
+      <input type="file" id="csvFile" accept=".csv,text/csv" />
+      <label style="margin-top:0.5rem">Ou coller la liste</label>
+      <textarea id="pasteList" rows="6" placeholder="Prénom,Nom\nPrénom2,Nom2"></textarea>
+      <div class="row" style="margin-top:0.5rem">
+        <button class="btn" id="importBtn">Importer</button>
+        <button class="btn secondary" id="sampleBtn">Exemple</button>
+      </div>
+      <p id="importStatus" class="muted" style="margin-top:0.5rem"></p>
+    </article>
+  </section>
 
-      <article class="card span-6">
-        <h2>📝 Notes rapides</h2>
-        <p class="muted">Écris des notes; elles sont enregistrées automatiquement dans ton navigateur.</p>
-        <textarea id="notes" rows="8" placeholder="Tes notes ici…"></textarea>
-        <div class="flex-end" style="margin-top:0.5rem">
-          <button id="clearNotes" class="danger">Effacer les notes</button>
+  <!-- Options -->
+  <section id="options" class="grid" hidden>
+    <article class="card span-6">
+      <h2>Paramétrage des compétences</h2>
+      <p class="muted">Ajoute les compétences à évaluer et définis leur <strong>poids en points</strong> (servira au calcul du score).</p>
+      <div class="row">
+        <input type="text" id="compName" placeholder="Nom de la compétence" />
+        <input type="number" id="compPoints" placeholder="Points (ex: 5)" min="0" step="1" />
+        <button class="btn" id="addComp">Ajouter</button>
+      </div>
+      <ul id="compList" class="list" style="margin-top:0.5rem"></ul>
+    </article>
+
+    <article class="card span-6">
+      <h2>Critères & options</h2>
+      <ul class="list">
+        <li>• Note chiffrée: plage <strong>0–20</strong> (modifiable)</li>
+        <li>• Niveaux compétences: <span class="pill level-1">Rouge</span>, <span class="pill level-2">Orange</span>, <span class="pill level-3">Vert</span>, <span class="pill level-4">Vert foncé</span></li>
+      </ul>
+      <div class="row">
+        <label>Plage note max</label>
+        <input type="number" id="noteMax" min="1" max="100" value="20" />
+        <button class="btn secondary" id="resetOpts">Réinitialiser</button>
+      </div>
+      <div style="margin-top:0.75rem">
+        <label>Liste des activités (presets)</label>
+        <input type="text" id="activityPreset" placeholder="Nom d'activité (ex: Course de côte)" />
+        <button class="btn small" id="addPreset">Ajouter preset</button>
+        <ul id="presetList" class="list" style="margin-top:0.5rem"></ul>
+      </div>
+    </article>
+  </section>
+
+  <!-- Saisie -->
+  <section id="saisie" class="grid" hidden>
+    <article class="card span-6">
+      <h2>Saisie d'une évaluation</h2>
+      <div class="row" style="flex-wrap:wrap; gap:0.75rem">
+        <div style="flex:1 1 220px; min-width:220px">
+          <label>Classe</label>
+          <select id="selectClass"></select>
         </div>
-      </article>
-
-      <article class="card span-4 span-6">
-        <h2>📦 Démo composant: compteur</h2>
-        <p class="muted">Exemple minimal de composant réactif sans framework.</p>
-        <div class="row">
-          <button id="dec">–</button>
-          <span class="pill" id="count">0</span>
-          <button id="inc">+</button>
+        <div style="flex:1 1 220px; min-width:220px">
+          <label>Nom de l'activité</label>
+          <input type="text" id="activityName" placeholder="Ex: Montée/Descente" />
         </div>
-      </article>
+        <div style="flex:1 1 220px; min-width:220px">
+          <label>Date</label>
+          <input type="date" id="activityDate" />
+        </div>
+      </div>
+      <div class="row" style="margin-top:0.75rem; flex-wrap:wrap">
+        <label>Type d'évaluation</label>
+        <select id="evalType">
+          <option value="note">Note (0–20)</option>
+          <option value="competences">Validation de compétences</option>
+          <option value="terrain">Terrain atteint</option>
+          <option value="mixte">Mixte (note + compétences + terrain)</option>
+        </select>
+        <button class="btn secondary" id="applyAll">Appliquer à la sélection</button>
+      </div>
+      <p class="muted" id="saisieHint" style="margin-top:0.5rem">Sélectionne des élèves (tap/cliquer) puis choisis un niveau ou une note pour appliquer en masse.</p>
+    </article>
 
-      <article class="card span-4 span-6">
-        <h2>📨 Formulaire</h2>
-        <p class="muted">Validation côté client (email & champ requis).</p>
-        <form id="contactForm">
-          <label>Nom</label>
-          <input type="text" id="cfName" placeholder="Votre nom" required />
-          <label style="margin-top:0.5rem">Email</label>
-          <input type="email" id="cfEmail" placeholder="vous@domaine.tld" required />
-          <label style="margin-top:0.5rem">Message</label>
-          <textarea id="cfMsg" rows="4" placeholder="Votre message" required></textarea>
-          <div class="row" style="margin-top:0.75rem">
-            <button type="submit">Envoyer</button>
-            <button type="reset" class="secondary">Réinitialiser</button>
-          </div>
-          <p id="cfStatus" class="muted" style="margin-top:0.5rem"></p>
-        </form>
-      </article>
+    <article class="card span-6">
+      <h2>Élèves</h2>
+      <div id="studentsSaisie" class="list"></div>
+      <div class="row" style="margin-top:0.75rem">
+        <button class="btn" id="downloadCsv">Exporter CSV</button>
+        <button class="btn secondary" id="clearSelection">Effacer la sélection</button>
+      </div>
+    </article>
+  </section>
 
-      <article class="card span-4 span-6">
-        <h2>🌗 Préférences & thème</h2>
-        <p class="muted">Le thème est persisté via <code>localStorage</code>.</p>
-        <ul class="list">
-          <li>• Palette sombre moderne</li>
-          <li>• Éléments accessibles (contraste, focus, tailles)</li>
-          <li>• Composants réactifs vanilla JS</li>
-        </ul>
-      </article>
-    </section>
-  </main>
+  <!-- Classe & Groupes -->
+  <section id="classe" class="grid" hidden>
+    <article class="card span-6">
+      <h2>Gestion des groupes</h2>
+      <div class="row">
+        <label>Classe</label>
+        <select id="selectClassGroups"></select>
+        <button class="btn small" id="addGroup">Ajouter un groupe</button>
+        <button class="btn secondary small" id="resetGroups">Réinitialiser</button>
+      </div>
+      <div id="groupsArea" class="groups" style="margin-top:0.75rem"></div>
+    </article>
+
+    <article class="card span-6">
+      <h2>Options d'évaluation associées</h2>
+      <p class="muted">Choisis quelles options sont actives pour cette classe/activité: note, compétences, terrain.</p>
+      <div class="row">
+        <label><input type="checkbox" id="optNote" checked /> Note 0–20</label>
+        <label><input type="checkbox" id="optComp" checked /> Compétences</label>
+        <label><input type="checkbox" id="optTerrain" /> Terrain atteint</label>
+      </div>
+      <div style="margin-top:0.5rem">
+        <label>Transformer validation → points (poids définis dans Options)</label>
+        <select id="compToPoints">
+          <option value="none">Ne pas transformer</option>
+          <option value="linear">Linéaire (Rouge=0, Orange=0.5, Vert=1, Vert foncé=1.2)</option>
+          <option value="strict">Strict (Rouge=0, Orange=0, Vert=1, Vert foncé=1)</option>
+        </select>
+      </div>
+    </article>
+  </section>
 
   <footer class="footer">
-    <small>Construit avec ❤️ en un seul fichier. Déploie sur GitHub Pages en quelques clics.</small>
+    <small>Fonctionne hors-ligne sur iPad. Données stockées localement. Export CSV pour archivage.</small>
   </footer>
+</main>
 
-  <script>
-    // Utilitaires
-    const qs = (sel, root=document) => root.querySelector(sel);
-    const qsa = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+<script>
+  // ===== Utilitaires & état =====
+  const qs = (s, r=document) => r.querySelector(s);
+  const qsa = (s, r=document) => Array.from(r.querySelectorAll(s));
+  const store = {
+    load(k, d){ try{ return JSON.parse(localStorage.getItem(k)) ?? d; }catch(e){ return d } },
+    save(k, v){ localStorage.setItem(k, JSON.stringify(v)); }
+  };
+  const STATE = {
+    classes: store.load('eval.classes', {}), // { className: [{id,name}], ... }
+    groups: store.load('eval.groups', {}),   // { className: { groupName: [studentId] } }
+    comps: store.load('eval.comps', []),     // [ {name, points} ]
+    presets: store.load('eval.presets', []), // [ activityName ]
+    opts: store.load('eval.opts', { noteMax: 20 }),
+    currentClass: store.load('eval.currentClass', ''),
+    activities: store.load('eval.activities', []) // [{name,date,class,records:{id:{note,levels:{compName:level},terrain,group}}}]
+  };
+  function persist(){
+    store.save('eval.classes', STATE.classes);
+    store.save('eval.groups', STATE.groups);
+    store.save('eval.comps', STATE.comps);
+    store.save('eval.presets', STATE.presets);
+    store.save('eval.opts', STATE.opts);
+    store.save('eval.currentClass', STATE.currentClass);
+    store.save('eval.activities', STATE.activities);
+  }
 
-    // Horloge
-    function tick() {
-      const d = new Date();
-      const pad = n => String(n).padStart(2,'0');
-      qs('#clock').textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  // Horloge
+  function tick(){ const d=new Date(); const pad=n=>String(n).padStart(2,'0'); qs('#clock').textContent=`${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}` }
+  setInterval(tick,1000); tick();
+
+  // Navigation
+  function navigate(hash){ location.hash = hash; updateRoute(); }
+  qs('#navSelect').addEventListener('change', e=>navigate(e.target.value));
+  function updateRoute(){
+    const h = location.hash || '#home';
+    qsa('main section').forEach(sec => sec.hidden = ('#'+sec.id) !== h);
+    qs('#navSelect').value = h;
+  }
+  window.addEventListener('hashchange', updateRoute);
+  updateRoute();
+
+  // ===== Import classe =====
+  function parseCSV(text){
+    const lines = text.trim().split(/\r?\n/).filter(Boolean);
+    const students = [];
+    let id=0;
+    for(const line of lines){
+      const parts = line.split(/[;,]/).map(s=>s.trim()).filter(Boolean);
+      if(parts.length>=2){ students.push({ id: 's'+(++id), name: parts[0]+' '+parts[1] }); }
+      else if(parts.length===1){ students.push({ id: 's'+(++id), name: parts[0] }); }
     }
-    setInterval(tick, 1000); tick();
+    return students;
+  }
+  qs('#sampleBtn').addEventListener('click', ()=>{
+    qs('#pasteList').value = 'Alice,Dupont\nBilal,Martin\nChloé,Nguyen\nDavid,Moreau\nEmma,Leroy';
+  });
+  qs('#importBtn').addEventListener('click', ()=>{
+    const name = qs('#className').value.trim();
+    if(!name){ qs('#importStatus').textContent = 'Donne un nom à la classe.'; return; }
+    let students = [];
+    const pasted = qs('#pasteList').value.trim();
+    if(pasted) students = parseCSV(pasted);
+    const file = qs('#csvFile').files[0];
+    if(file){ const fr = new FileReader(); fr.onload = ()=>{ students = students.concat(parseCSV(fr.result)); finishImport(name, students); }; fr.readAsText(file); }
+    else finishImport(name, students);
+  });
+  function finishImport(name, students){
+    if(!students.length){ qs('#importStatus').textContent = 'Aucun élève détecté.'; return; }
+    STATE.classes[name] = students;
+    STATE.currentClass = name;
+    if(!STATE.groups[name]) STATE.groups[name] = { 'Groupe A': students.slice(0, Math.ceil(students.length/2)).map(s=>s.id), 'Groupe B': students.slice(Math.ceil(students.length/2)).map(s=>s.id) };
+    persist();
+    refreshClassSelects();
+    qs('#importStatus').textContent = `Importé: ${students.length} élèves dans « ${name} ». `;
+    navigate('#classe');
+  }
 
-    // Thème
-    const THEME_KEY = 'app.theme';
-    function applyTheme(theme){
-      const isDark = theme === 'dark';
-      document.body.style.setProperty('--bg', isDark ? '#0f172a' : '#f8fafc');
-      document.body.style.setProperty('--panel', isDark ? '#111827' : '#ffffff');
-      document.body.style.setProperty('--text', isDark ? '#0b1220' : '#0b1220');
-      document.body.style.color = isDark ? '#e5e7eb' : '#0b1220';
-    }
-    const savedTheme = localStorage.getItem(THEME_KEY) || 'dark';
-    applyTheme(savedTheme);
-    qs('#toggleTheme').addEventListener('click', () => {
-      const next = (localStorage.getItem(THEME_KEY) || 'dark') === 'dark' ? 'light' : 'dark';
-      localStorage.setItem(THEME_KEY, next);
-      applyTheme(next);
+  // ===== Options: compétences & presets =====
+  function renderComps(){
+    const ul = qs('#compList'); ul.innerHTML='';
+    STATE.comps.forEach((c, i)=>{
+      const li=document.createElement('li');
+      li.innerHTML = `<div class="row" style="gap:0.75rem">
+        <span class="pill">${c.name}</span>
+        <span class="pill">${c.points} pts</span>
+        <button class="btn secondary small" data-i="${i}">Modifier</button>
+        <button class="btn danger small" data-del="${i}">Supprimer</button>
+      </div>`;
+      ul.appendChild(li);
     });
+    qsa('#compList button[data-del]').forEach(b=>b.addEventListener('click', e=>{ const i=+e.target.dataset.del; STATE.comps.splice(i,1); persist(); renderComps(); }));
+    qsa('#compList button[data-i]').forEach(b=>b.addEventListener('click', e=>{ const i=+e.target.dataset.i; const nv = prompt('Nouveau nombre de points pour '+STATE.comps[i].name, STATE.comps[i].points); if(nv!==null){ STATE.comps[i].points = Math.max(0, parseInt(nv)||0); persist(); renderComps(); } }));
+  }
+  qs('#addComp').addEventListener('click', ()=>{
+    const name = qs('#compName').value.trim();
+    const pts = parseInt(qs('#compPoints').value.trim())||0;
+    if(!name){ alert('Nom de compétence requis'); return; }
+    STATE.comps.push({ name, points: Math.max(0, pts) });
+    qs('#compName').value=''; qs('#compPoints').value='';
+    persist(); renderComps();
+  });
+  qs('#noteMax').value = STATE.opts.noteMax||20;
+  qs('#noteMax').addEventListener('change', e=>{ STATE.opts.noteMax = Math.max(1, parseInt(e.target.value)||20); persist(); });
+  qs('#resetOpts').addEventListener('click', ()=>{ STATE.opts = { noteMax: 20 }; persist(); qs('#noteMax').value=20; });
+  qs('#addPreset').addEventListener('click', ()=>{ const p = qs('#activityPreset').value.trim(); if(!p) return; STATE.presets.push(p); qs('#activityPreset').value=''; persist(); renderPresets(); });
+  function renderPresets(){ const ul = qs('#presetList'); ul.innerHTML=''; STATE.presets.forEach((p,i)=>{ const li=document.createElement('li'); li.innerHTML=`<div class="row"><span class="pill">${p}</span><button class="btn danger small" data-del="${i}">Supprimer</button></div>`; ul.appendChild(li); }); qsa('#presetList button[data-del]').forEach(b=>b.addEventListener('click', e=>{ const i=+e.target.dataset.del; STATE.presets.splice(i,1); persist(); renderPresets(); })); }
+  renderComps(); renderPresets();
 
-    // Tâches
-    const TODOS_KEY = 'app.todos';
-    const state = { todos: JSON.parse(localStorage.getItem(TODOS_KEY) || '[]'), count: 0 };
-    function persist(){ localStorage.setItem(TODOS_KEY, JSON.stringify(state.todos)); stats(); }
-    function stats(){ const open = state.todos.filter(t => !t.done).length; qs('#statsBadge').textContent = `${open} à faire`; }
-    function render(){
-      const ul = qs('#todoList'); ul.innerHTML = '';
-      state.todos.forEach((t, i) => {
-        const li = document.createElement('li'); li.className = 'todo-item';
-        li.innerHTML = `
-          <input type="checkbox" ${t.done ? 'checked' : ''} aria-label="Cocher la tâche"/>
-          <span style="${t.done ? 'text-decoration: line-through; color: var(--muted);' : ''}">${t.text}</span>
-          <button class="secondary" aria-label="Supprimer">Supprimer</button>
-        `;
-        const [chk, span, del] = li.children;
-        chk.addEventListener('change', () => { state.todos[i].done = chk.checked; persist(); render(); });
-        del.addEventListener('click', () => { state.todos.splice(i,1); persist(); render(); });
+  // ===== Sélecteurs de classe =====
+  function refreshClassSelects(){
+    const sel1 = qs('#selectClass'); const sel2 = qs('#selectClassGroups');
+    const clsNames = Object.keys(STATE.classes);
+    function fill(sel){ sel.innerHTML=''; clsNames.forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; sel.appendChild(o); }); if(STATE.currentClass) sel.value=STATE.currentClass; }
+    fill(sel1); fill(sel2);
+  }
+  refreshClassSelects();
+
+  // ===== Classe & Groupes =====
+  function renderGroups(){
+    const className = qs('#selectClassGroups').value || STATE.currentClass;
+    if(!className){ qs('#groupsArea').innerHTML='<p class="muted">Importe une classe pour commencer.</p>'; return; }
+    const area = qs('#groupsArea'); area.innerHTML='';
+    const groups = STATE.groups[className] || {};
+    for(const gName of Object.keys(groups)){
+      const col = document.createElement('div'); col.className='group-card'; col.dataset.group=gName;
+      col.innerHTML = `<div class="group-header"><strong>${gName}</strong><div class="row"><button class="btn secondary small" data-add="${gName}">Ajouter élève</button><button class="btn danger small" data-del="${gName}">Supprimer groupe</button></div></div><div class="list" data-drop="${gName}"></div>`;
+      area.appendChild(col);
+      const ul = qs('[data-drop="'+gName+'"]', col);
+      const students = groups[gName].map(id => STATE.classes[className].find(s=>s.id===id)).filter(Boolean);
+      students.forEach(st => {
+        const li = document.createElement('div'); li.className='student'; li.draggable=true; li.dataset.id=st.id; li.innerHTML = `<div class="row" style="justify-content:space-between"><span class="name">${st.name}</span><select class="moveSelect"><option>Déplacer vers…</option>${Object.keys(groups).map(gn=>`<option value="${gn}">${gn}</option>`).join('')}</select></div>`;
+        li.addEventListener('dragstart', e=>{ e.dataTransfer.setData('text/plain', st.id); });
         ul.appendChild(li);
       });
-      stats();
     }
-    render();
-
-    qs('#addTodo').addEventListener('click', addTodo);
-    qs('#todoInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') addTodo(); });
-    qs('#clearDone').addEventListener('click', () => { state.todos = state.todos.filter(t => !t.done); persist(); render(); });
-    function addTodo(){
-      const v = qs('#todoInput').value.trim();
-      if (!v) return; state.todos.push({ text: v, done: false });
-      qs('#todoInput').value = ''; persist(); render();
-    }
-
-    // Notes
-    const NOTES_KEY = 'app.notes';
-    qs('#notes').value = localStorage.getItem(NOTES_KEY) || '';
-    qs('#notes').addEventListener('input', (e) => { localStorage.setItem(NOTES_KEY, e.target.value); });
-    qs('#clearNotes').addEventListener('click', () => { if (confirm('Effacer les notes ?')) { localStorage.removeItem(NOTES_KEY); qs('#notes').value=''; } });
-
-    // Compteur
-    function updateCount(){ qs('#count').textContent = String(state.count); }
-    qs('#inc').addEventListener('click', () => { state.count++; updateCount(); });
-    qs('#dec').addEventListener('click', () => { state.count = Math.max(0, state.count-1); updateCount(); });
-
-    // Formulaire
-    qs('#contactForm').addEventListener('submit', (e) => {
-      e.preventDefault();
-      const name = qs('#cfName').value.trim();
-      const email = qs('#cfEmail').value.trim();
-      const msg = qs('#cfMsg').value.trim();
-      if (!name || !email || !msg) { qs('#cfStatus').textContent = 'Veuillez remplir tous les champs.'; return; }
-      const okEmail = /\S+@\S+\.\S+/.test(email);
-      if (!okEmail) { qs('#cfStatus').textContent = 'Adresse email invalide.'; return; }
-      qs('#cfStatus').textContent = 'Message prêt (démo). Brancher une API pour l’envoi.';
+    // DnD zones
+    qsa('[data-drop]').forEach(zone=>{
+      zone.addEventListener('dragover', e=>e.preventDefault());
+      zone.addEventListener('drop', e=>{ e.preventDefault(); const id=e.dataTransfer.getData('text/plain'); moveStudent(className, id, zone.dataset.drop); });
     });
-  </script>
+    // Move via select (iPad friendly)
+    qsa('.moveSelect').forEach(sel=> sel.addEventListener('change', e=>{ const id=e.target.closest('.student').dataset.id; const to=e.target.value; moveStudent(className, id, to); }));
+    // Actions
+    qsa('[data-del]').forEach(b=> b.addEventListener('click', e=>{ const gn=e.target.dataset.del; delete STATE.groups[className][gn]; persist(); renderGroups(); }));
+    qsa('[data-add]').forEach(b=> b.addEventListener('click', e=>{ const gn=e.target.dataset.add; const name = prompt('Nom de l’élève à ajouter au groupe '+gn); if(!name) return; const id = 's'+(Math.floor(Math.random()*1e9)); const st={id,name}; STATE.classes[className].push(st); STATE.groups[className][gn].push(id); persist(); renderGroups(); }));
+  }
+  function moveStudent(className, studentId, toGroup){
+    const g = STATE.groups[className]; if(!g||!g[toGroup]) return;
+    for(const gn of Object.keys(g)){ const idx = g[gn].indexOf(studentId); if(idx>=0){ g[gn].splice(idx,1); } }
+    g[toGroup].push(studentId);
+    persist(); renderGroups();
+  }
+  qs('#selectClassGroups').addEventListener('change', renderGroups);
+  qs('#addGroup').addEventListener('click', ()=>{ const cls=qs('#selectClassGroups').value||STATE.currentClass; if(!cls) return; const gn = prompt('Nom du nouveau groupe'); if(!gn) return; STATE.groups[cls] = STATE.groups[cls]||{}; STATE.groups[cls][gn] = []; persist(); renderGroups(); });
+  qs('#resetGroups').addEventListener('click', ()=>{ const cls=qs('#selectClassGroups').value||STATE.currentClass; if(!cls) return; const studs = STATE.classes[cls]||[]; STATE.groups[cls] = { 'Groupe A': studs.slice(0, Math.ceil(studs.length/2)).map(s=>s.id), 'Groupe B': studs.slice(Math.ceil(studs.length/2)).map(s=>s.id) }; persist(); renderGroups(); });
+  renderGroups();
+
+  // ===== Saisie =====
+  function renderSaisie(){
+    const className = qs('#selectClass').value || STATE.currentClass;
+    if(!className){ qs('#studentsSaisie').innerHTML = '<p class="muted">Sélectionne/import une classe d’abord.</p>'; return; }
+    STATE.currentClass = className; persist();
+    const list = qs('#studentsSaisie'); list.innerHTML='';
+    const students = STATE.classes[className] || [];
+    const evalType = qs('#evalType').value;
+    students.forEach(st=>{
+      const div = document.createElement('div'); div.className='student'; div.dataset.id=st.id; div.innerHTML = `
+        <div class="row" style="justify-content:space-between; align-items:baseline">
+          <span class="name">${st.name}</span>
+          <input type="checkbox" class="selBox" aria-label="Sélectionner" />
+        </div>
+        <div class="row" style="flex-wrap:wrap; gap:0.5rem; margin-top:0.35rem">
+          <div class="row" style="gap:0.35rem">
+            <label>Note</label>
+            <input type="number" class="noteInput" min="0" max="${STATE.opts.noteMax}" step="0.5" placeholder="0–${STATE.opts.noteMax}" />
+          </div>
+          <div class="row" style="gap:0.35rem">
+            <label>Terrain</label>
+            <input type="text" class="terrainInput" placeholder="Ex: T1 / 200m / piste verte" />
+          </div>
+        </div>
+        <div class="row" style="flex-wrap:wrap; gap:0.35rem; margin-top:0.35rem">
+          ${STATE.comps.map(c=>`
+            <div class="row" style="gap:0.35rem">
+              <label>${c.name}</label>
+              <select class="levelSelect" data-comp="${c.name}">
+                <option value="0">—</option>
+                <option value="1">Rouge</option>
+                <option value="2">Orange</option>
+                <option value="3">Vert</option>
+                <option value="4">Vert foncé</option>
+              </select>
+            </div>`).join('')}
+        </div>`;
+      list.appendChild(div);
+    });
+    // Filtrer selon options
+    const showNote = qs('#optNote').checked || evalType==='note' || evalType==='mixte';
+    const showComp = qs('#optComp').checked || evalType==='competences' || evalType==='mixte';
+    const showTerrain = qs('#optTerrain').checked || evalType==='terrain' || evalType==='mixte';
+    qsa('.noteInput').forEach(el=> el.closest('.row').style.display = showNote ? '' : 'none');
+    qsa('.levelSelect').forEach(el=> el.closest('.row').style.display = showComp ? '' : 'none');
+    qsa('.terrainInput').forEach(el=> el.closest('.row').style.display = showTerrain ? '' : 'none');
+  }
+  qs('#selectClass').addEventListener('change', renderSaisie);
+  qs('#evalType').addEventListener('change', renderSaisie);
+  ['optNote','optComp','optTerrain'].forEach(id=> qs('#'+id).addEventListener('change', renderSaisie));
+  renderSaisie();
+
+  // Appliquer en masse
+  qs('#applyAll').addEventListener('click', ()=>{
+    const selected = qsa('#studentsSaisie .selBox').filter(b=>b.checked).map(b=> b.closest('.student'));
+    if(!selected.length){ alert('Sélectionne des élèves d’abord.'); return; }
+    const evalType = qs('#evalType').value;
+    if(evalType==='note' || evalType==='mixte'){ const n = prompt('Note à appliquer (0–'+STATE.opts.noteMax+')'); if(n!==null){ selected.forEach(div=> qs('.noteInput', div).value = n ); } }
+    if(evalType==='competences' || evalType==='mixte'){
+      const comp = prompt('Nom de la compétence à valider (identique au paramétrage)');
+      const lvl = prompt('Niveau (1=Rouge, 2=Orange, 3=Vert, 4=Vert foncé)');
+      if(comp && lvl){ selected.forEach(div=>{ const sel = qsa('.levelSelect', div).find(s=>s.dataset.comp===comp); if(sel) sel.value = lvl; }); }
+    }
+    if(evalType==='terrain' || evalType==='mixte'){ const t = prompt('Valeur de terrain à appliquer (texte)'); if(t!==null){ selected.forEach(div=> qs('.terrainInput', div).value = t ); } }
+  });
+  qs('#clearSelection').addEventListener('click', ()=> qsa('#studentsSaisie .selBox').forEach(b=> b.checked=false));
+
+  // Sauvegarde activité
+  function saveActivity(){
+    const className = qs('#selectClass').value || STATE.currentClass; if(!className){ alert('Classe requise'); return; }
+    const name = (qs('#activityName').value.trim() || STATE.presets[STATE.presets.length-1] || 'Activité');
+    const date = qs('#activityDate').value || new Date().toISOString().slice(0,10);
+    const records = {};
+    const compWeightMode = qs('#compToPoints').value;
+    const noteMax = STATE.opts.noteMax;
+    const groups = STATE.groups[className] || {};
+    const groupOf = (id)=>{ for(const [gn,ids] of Object.entries(groups)){ if(ids.includes(id)) return gn; } return '' };
+    qsa('#studentsSaisie .student').forEach(div=>{
+      const id = div.dataset.id; const nameSt = qs('.name',div).textContent;
+      const note = parseFloat(qs('.noteInput',div).value||'');
+      const terrain = (qs('.terrainInput',div).value||'').trim();
+      const levels = {}; qsa('.levelSelect', div).forEach(sel=> levels[sel.dataset.comp] = parseInt(sel.value||'0'));
+      let pointsFromComp = 0;
+      if(compWeightMode!=='none'){
+        for(const c of STATE.comps){ const lvl = levels[c.name]||0; let factor=0; if(compWeightMode==='linear'){ factor = {0:0,1:0,2:0.5,3:1,4:1.2}[lvl]||0; } else { factor = {0:0,1:0,2:0,3:1,4:1}[lvl]||0; } pointsFromComp += c.points * factor; }
+      }
+      records[id] = { id, name: nameSt, note: isNaN(note)? null : Math.max(0, Math.min(noteMax, note)), levels, terrain, group: groupOf(id), pointsFromComp };
+    });
+    STATE.activities.push({ name, date, class: className, records });
+    persist(); alert('Évaluation enregistrée');
+  }
+  qs('#saveBtn').addEventListener('click', saveActivity);
+
+  // Export CSV
+  function toCSV(act){
+    const headers = ['Activité','Date','Classe','Élève','Groupe','Note','PointsComp','Terrain'];
+    const compNames = STATE.comps.map(c=>c.name);
+    const levelCols = compNames.map(n=>'Lvl:'+n);
+    const allHeaders = headers.concat(levelCols);
+    const lines = [allHeaders.join(',')];
+    for(const rec of Object.values(act.records)){
+      const base = [act.name, act.date, act.class, rec.name, rec.group || '', (rec.note ?? ''), rec.pointsFromComp ?? '', rec.terrain || ''];
+      const lvls = compNames.map(n=> rec.levels[n] ?? 0);
+      lines.push(base.concat(lvls).join(','));
+    }
+    return lines.join('\n');
+  }
+  function exportLastCSV(){ const act = STATE.activities[STATE.activities.length-1]; if(!act){ alert('Rien à exporter. Sauvegarde une évaluation d’abord.'); return; } const csv = toCSV(act); const blob = new Blob([csv], {type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); const safeClass=(act.class||'classe').replace(/\s+/g,'_'); a.download = `${act.date}_${safeClass}_${act.name}.csv`; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); }
+  qs('#exportBtn').addEventListener('click', exportLastCSV);
+  qs('#downloadCsv').addEventListener('click', exportLastCSV);
+
+  // Service worker
+  if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(console.error); }
+
+</script>
 </body>
 </html>
-``
