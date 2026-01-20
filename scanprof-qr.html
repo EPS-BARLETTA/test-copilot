@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>EPS DataHub — QR plein écran</title>
+  <title>EPS DataCollector — QR plein écran</title>
   <style>
     html,body{
       margin:0;
@@ -80,7 +80,7 @@
         height: Math.min(window.innerWidth, window.innerHeight)*0.8,
         correctLevel: QRCode.CorrectLevel.M
       });
-      info.textContent = kind === "config" ? "Configuration scannable" : "Dernier QR généré via EPS DataHub";
+      info.textContent = kind === "config" ? "Configuration scannable" : "Dernier QR généré via EPS DataCollector";
     })();
   </script>
 </body>
