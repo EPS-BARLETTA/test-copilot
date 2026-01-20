@@ -64,19 +64,23 @@
   <script src="./qrcode.min.js"></script>
   <script>
     (function(){
-      const text = sessionStorage.getItem("eps_datahub_last_qr");
+      const params = new URLSearchParams(window.location.search);
+      const kind = params.get("kind") === "config" ? "config" : "entry";
+      const storageKey = kind === "config" ? "eps_datahub_last_config_qr" : "eps_datahub_last_qr";
+      const target = document.getElementById("qr");
       const info = document.getElementById("qrInfo");
-      if(!text){
-        document.getElementById("qr").innerHTML = "<p>QR indisponible. Retournez sur l’application pour en générer un.</p>";
+      const payload = sessionStorage.getItem(storageKey);
+      if(!payload){
+        target.innerHTML = "<p>QR indisponible. Retournez sur l’application pour en générer un.</p>";
         return;
       }
-      new QRCode(document.getElementById("qr"), {
-        text,
+      new QRCode(target, {
+        text: payload,
         width: Math.min(window.innerWidth, window.innerHeight)*0.8,
         height: Math.min(window.innerWidth, window.innerHeight)*0.8,
         correctLevel: QRCode.CorrectLevel.M
       });
-      info.textContent = "Dernier QR généré via EPS DataHub";
+      info.textContent = kind === "config" ? "Configuration scannable" : "Dernier QR généré via EPS DataHub";
     })();
   </script>
 </body>

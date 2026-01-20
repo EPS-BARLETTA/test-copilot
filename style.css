@@ -113,21 +113,16 @@ textarea{min-height:90px;resize:vertical;}
   margin-bottom:8px;
 }
 .tab-grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
-  gap:12px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:16px;
   margin:14px 0;
+  justify-content:center;
 }
-.tab-grid .tab:nth-child(3){
-  grid-column:1 / -1;
-  justify-self:center;
-  max-width:320px;
-}
-.tab-grid .tab:nth-child(5){
-  grid-column:span 2;
-}
-.tab-grid .tab:nth-child(6){
-  grid-column:span 2;
+.tab-grid .tab{
+  flex:1 1 calc(50% - 20px);
+  min-width:180px;
+  max-width:260px;
 }
 .tab{
   border-radius:18px;
@@ -149,6 +144,24 @@ textarea{min-height:90px;resize:vertical;}
   outline:3px solid rgba(255,255,255,0.6);
 }
 .pane{margin-top:16px;}
+.entry-form{
+  max-width:760px;
+  margin:0 auto;
+}
+#participantForm,
+#teamForm{
+  max-width:760px;
+  margin:0 auto;
+  font-size:16px;
+}
+#participantForm input,
+#participantForm textarea,
+#participantForm select,
+#teamForm input,
+#teamForm textarea,
+#teamForm select{
+  font-size:16px;
+}
 .input-row{
   display:grid;
   grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
@@ -244,6 +257,19 @@ textarea{min-height:90px;resize:vertical;}
   font-weight:600;
 }
 .chrono-toggle input{width:auto;}
+.chrono-config{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:12px;
+  margin-top:12px;
+}
+.chrono-config label{
+  display:flex;
+  flex-direction:column;
+  font-size:14px;
+  color:#0f172a;
+  gap:6px;
+}
 .timer-block{
   border:1px dashed #93c5fd;
   border-radius:16px;
@@ -260,6 +286,13 @@ textarea{min-height:90px;resize:vertical;}
   font-weight:700;
   color:#0f172a;
 }
+.timer-label{
+  font-size:13px;
+  text-transform:uppercase;
+  letter-spacing:0.05em;
+  color:#475569;
+  margin-bottom:4px;
+}
 .timer-actions{
   display:flex;
   gap:10px;
@@ -272,4 +305,7 @@ textarea{min-height:90px;resize:vertical;}
 @media(max-width:720px){
   .section-head{flex-direction:column;}
   .hero h1{font-size:34px;}
+  .tab-grid .tab{
+    flex:1 1 100%;
+  }
 }

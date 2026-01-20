@@ -4,6 +4,7 @@
   const CONFIG_KEY = "eps_datahub_config_v1";
   const SESSION_KEY = "eps_datahub_session_v1";
   const LAST_QR_KEY = "eps_datahub_last_qr";
+  const LAST_CONFIG_QR_KEY = "eps_datahub_last_config_qr";
   let importedFromQuery = false;
 
   const pages = {
@@ -19,7 +20,9 @@
   const state = {
     config: {
       fields: [],
-      chrono: false
+      chrono: false,
+      chronoMode: "chrono",
+      timerDuration: 60
     },
     mode: "indiv",
     participants: [],
@@ -37,6 +40,8 @@
     btnBackEntry: document.getElementById("btnBackEntry"),
     btnAddField: document.getElementById("btnAddField"),
     cfgChrono: document.getElementById("cfgChrono"),
+    cfgChronoMode: document.getElementById("cfgChronoMode"),
+    cfgTimerDuration: document.getElementById("cfgTimerDuration"),
     fieldList: document.getElementById("fieldList"),
     participantTabs: document.getElementById("participantTabs"),
     participantForm: document.getElementById("participantForm"),
@@ -49,6 +54,7 @@
     btnAddTeam: document.getElementById("btnAddTeam"),
     modeButtons: document.querySelectorAll(".mode-switch button[data-mode]"),
     btnShareConfig: document.getElementById("btnShareConfig"),
+    btnConfigFullscreen: document.getElementById("btnConfigFullscreen"),
     btnResetApp: document.getElementById("btnResetApp"),
     configQrBox: document.getElementById("configQrBox"),
     btnConfigQrClose: document.getElementById("btnConfigQrClose"),
@@ -62,12 +68,16 @@
 
   function normalizeConfig(){
     if(!state.config || typeof state.config !== "object"){
-      state.config = { fields: [], chrono: false };
+      state.config = { fields: [], chrono: false, chronoMode: "chrono", timerDuration: 60 };
     }
     if(!Array.isArray(state.config.fields)){
       state.config.fields = [];
     }
     state.config.chrono = Boolean(state.config.chrono);
+    if(state.config.chronoMode !== "timer" && state.config.chronoMode !== "chrono"){
+      state.config.chronoMode = "chrono";
+    }
+    state.config.timerDuration = Math.max(5, Number(state.config.timerDuration) || 60);
   }
 
   const colorPalette = ["#2563eb","#0ea5e9","#38bdf8","#60a5fa","#1d4ed8","#3b82f6","#0284c7","#7dd3fc"];
@@ -141,14 +151,13 @@
     const token = params.get("config");
     if(!token) return;
     try{
-      let json;
-      try{
-        const decoded = atob(token);
-        json = window.LZString && window.LZString.decompressFromEncodedURIComponent
-          ? window.LZString.decompressFromEncodedURIComponent(decoded)
-          : decodeURIComponent(decoded);
-      }catch(err){
-        json = decodeURIComponent(atob(token));
+      const decoded = atob(token);
+      let json = null;
+      if(window.LZString && window.LZString.decompressFromEncodedURIComponent){
+        json = window.LZString.decompressFromEncodedURIComponent(decoded);
+      }
+      if(!json){
+        json = decodeURIComponent(decoded);
       }
       const data = JSON.parse(json);
       if(data && Array.isArray(data.fields)){
@@ -607,13 +616,28 @@
     }
   }
 
+  function isTimerMode(){
+    return state.config.chrono && state.config.chronoMode === "timer";
+  }
+  function timerTargetMs(){
+    return Math.max(5, Number(state.config.timerDuration) || 60) * 1000;
+  }
+
   function buildTimerBlock(entry){
-    const current = entry.timerRunning
+    const elapsed = entry.timerRunning
       ? (entry.timerMs || 0) + (Date.now() - (entry.timerStart || Date.now()))
       : (entry.timerMs || 0);
+    const durationMs = timerTargetMs();
+    const displayMs = isTimerMode() ? Math.max(durationMs - elapsed, 0) : elapsed;
+    const label = isTimerMode()
+      ? `Minuteur — ${state.config.timerDuration || 60}s`
+      : "Chronomètre";
     return `
       <div class="timer-block" data-id="${entry.id}">
-        <div class="timer-display" id="timerDisplay-${entry.id}">${formatDuration(current)}</div>
+        <div>
+          <div class="timer-label">${label}</div>
+          <div class="timer-display" id="timerDisplay-${entry.id}">${formatDuration(displayMs)}</div>
+        </div>
         <div class="timer-actions">
           <button class="btn btn-green small" data-timer="start">▶︎ Démarrer</button>
           <button class="btn btn-amber small" data-timer="stop">■ Stop</button>
@@ -639,8 +663,16 @@
   function runTimer(entry){
     cleanupTimer(entry.id);
     const interval = setInterval(()=>{
-      const ms = (entry.timerMs || 0) + (Date.now() - (entry.timerStart || Date.now()));
-      updateTimerDisplay(entry.id, ms);
+      const elapsed = (entry.timerMs || 0) + (Date.now() - (entry.timerStart || Date.now()));
+      if(isTimerMode()){
+        const remaining = Math.max(timerTargetMs() - elapsed, 0);
+        updateTimerDisplay(entry.id, remaining);
+        if(remaining <= 0){
+          stopTimer(entry);
+        }
+      }else{
+        updateTimerDisplay(entry.id, elapsed);
+      }
     }, 120);
     timers.set(entry.id, interval);
   }
@@ -657,9 +689,15 @@
     if(!entry.timerRunning) return;
     entry.timerRunning = false;
     entry.timerMs = (entry.timerMs || 0) + (Date.now() - (entry.timerStart || Date.now()));
+    if(isTimerMode()){
+      entry.timerMs = Math.min(entry.timerMs, timerTargetMs());
+    }
     entry.timerStart = null;
     cleanupTimer(entry.id);
-    updateTimerDisplay(entry.id, entry.timerMs);
+    const ms = isTimerMode()
+      ? Math.max(timerTargetMs() - entry.timerMs, 0)
+      : entry.timerMs;
+    updateTimerDisplay(entry.id, ms);
     saveSession();
   }
 
@@ -668,7 +706,8 @@
     entry.timerStart = null;
     entry.timerMs = 0;
     cleanupTimer(entry.id);
-    updateTimerDisplay(entry.id, 0);
+    const ms = isTimerMode() ? timerTargetMs() : 0;
+    updateTimerDisplay(entry.id, ms);
     saveSession();
   }
 
@@ -686,7 +725,10 @@
     if(entry.timerRunning){
       runTimer(entry);
     }else{
-      updateTimerDisplay(entry.id, entry.timerMs || 0);
+      const ms = isTimerMode()
+        ? Math.max(timerTargetMs() - (entry.timerMs || 0), 0)
+        : (entry.timerMs || 0);
+      updateTimerDisplay(entry.id, ms);
     }
   }
 
@@ -697,12 +739,35 @@
     }
   }
 
+  function clearEntryTimer(entry){
+    cleanupTimer(entry.id);
+    entry.timerRunning = false;
+    entry.timerStart = null;
+    entry.timerMs = 0;
+  }
+
+  function disableAllTimers(){
+    state.participants.forEach(clearEntryTimer);
+    state.teams.forEach(clearEntryTimer);
+  }
+
   function updateSessionInfo(){
     const count = state.config.fields.length;
     if(count){
       elements.sessionInfo.textContent = `${count} champ(s) actifs${state.config.chrono ? " • Chrono actif" : ""}.`;
     }else{
       elements.sessionInfo.textContent = "Aucun champ paramétré. Configurez-les ou importez une configuration.";
+    }
+  }
+
+  function updateChronoControlsUI(){
+    if(elements.cfgChronoMode){
+      elements.cfgChronoMode.value = state.config.chronoMode || "chrono";
+      elements.cfgChronoMode.disabled = !state.config.chrono;
+    }
+    if(elements.cfgTimerDuration){
+      elements.cfgTimerDuration.value = state.config.timerDuration || 60;
+      elements.cfgTimerDuration.disabled = !state.config.chrono || state.config.chronoMode !== "timer";
     }
   }
 
@@ -727,6 +792,9 @@
         height: 220,
         correctLevel: QRCode.CorrectLevel.M
       });
+      try{
+        sessionStorage.setItem(LAST_CONFIG_QR_KEY, url);
+      }catch(e){}
     }
     configQrModal.classList.add("visible");
   }
@@ -836,9 +904,11 @@
 
   function resetApplication(){
     if(!confirm("Effacer la configuration et toutes les données ?")) return;
+    disableAllTimers();
+    timers.clear();
     localStorage.removeItem(CONFIG_KEY);
     localStorage.removeItem(SESSION_KEY);
-    state.config = { fields: [], chrono: false };
+    state.config = { fields: [], chrono: false, chronoMode: "chrono", timerDuration: 60 };
     state.participants = [];
     state.teams = [];
     state.currentParticipant = null;
@@ -850,6 +920,7 @@
     renderTeams();
     renderModeButtons();
     updateSessionInfo();
+    updateChronoControlsUI();
     alert("Application réinitialisée.");
   }
 
@@ -863,6 +934,8 @@
     renderTeams();
     renderModeButtons();
     updateSessionInfo();
+    if(elements.participantForm) elements.participantForm.classList.add("entry-form");
+    if(elements.teamForm) elements.teamForm.classList.add("entry-form");
 
     elements.btnGoEntry.onclick = ()=>setPage("entry");
     elements.btnGoConfig.onclick = ()=>{
@@ -891,10 +964,19 @@
       elements.btnResetApp.onclick = resetApplication;
     }
     elements.btnShareConfig.onclick = openConfigQr;
+    if(elements.btnConfigFullscreen){
+      elements.btnConfigFullscreen.onclick = ()=>{
+        if(!sessionStorage.getItem(LAST_CONFIG_QR_KEY)){
+          alert("Générez d'abord le QR configuration.");
+          return;
+        }
+        window.open("scanprof-qr.html?kind=config","_blank");
+      };
+    }
     elements.btnConfigQrClose.onclick = closeConfigQr;
     elements.btnEntryQrClose.onclick = closeEntryQrModal;
     if(elements.btnEntryQrFullscreen){
-      elements.btnEntryQrFullscreen.onclick = ()=>window.open("scanprof-qr.html","_blank");
+      elements.btnEntryQrFullscreen.onclick = ()=>window.open("scanprof-qr.html?kind=entry","_blank");
     }
     elements.btnOpenPrint.onclick = openPrint;
     if(elements.cfgChrono){
@@ -906,6 +988,31 @@
         renderParticipantForm();
         renderTeamForm();
         updateSessionInfo();
+        updateChronoControlsUI();
+        if(!state.config.chrono){
+          disableAllTimers();
+        }
+      });
+    }
+    updateChronoControlsUI();
+
+    if(elements.cfgChronoMode){
+      elements.cfgChronoMode.addEventListener("change", ()=>{
+        state.config.chronoMode = elements.cfgChronoMode.value;
+        saveConfig();
+        renderParticipantForm();
+        renderTeamForm();
+        updateChronoControlsUI();
+      });
+    }
+    if(elements.cfgTimerDuration){
+      elements.cfgTimerDuration.addEventListener("input", ()=>{
+        const val = Math.max(5, Number(elements.cfgTimerDuration.value) || 60);
+        state.config.timerDuration = val;
+        elements.cfgTimerDuration.value = val;
+        saveConfig();
+        renderParticipantForm();
+        renderTeamForm();
       });
     }
 
@@ -921,6 +1028,8 @@
       if(elements.btnGoConfig) elements.btnGoConfig.style.display = "none";
       if(elements.btnBackCover1) elements.btnBackCover1.style.display = "none";
       if(elements.btnBackCover2) elements.btnBackCover2.style.display = "none";
+      if(elements.btnResetApp) elements.btnResetApp.style.display = "none";
+      if(elements.btnConfigFullscreen) elements.btnConfigFullscreen.style.display = "none";
       setPage("entry");
     }
   }

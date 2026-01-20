@@ -29,6 +29,7 @@
         <button class="btn btn-amber" id="btnBackCover1">⬅ Accueil</button>
         <button class="btn btn-red" id="btnResetApp">🔄 Réinitialiser</button>
         <button class="btn btn-blue" id="btnShareConfig">Partager la configuration</button>
+        <button class="btn btn-amber" id="btnConfigFullscreen">🖥️ Plein écran</button>
       </div>
     </header>
 
@@ -44,6 +45,19 @@
           <span>Activer le chrono/minuteur individuel</span>
         </label>
         <p class="muted small">Permet à chaque élève ou équipe de lancer un chrono depuis sa tablette.</p>
+        <div class="chrono-config">
+          <label>
+            Mode
+            <select id="cfgChronoMode">
+              <option value="chrono">Chronomètre (compte en avant)</option>
+              <option value="timer">Minuteur (compte à rebours)</option>
+            </select>
+          </label>
+          <label>
+            Durée minuteur (secondes)
+            <input id="cfgTimerDuration" type="number" min="5" step="5" value="60">
+          </label>
+        </div>
       </div>
       <p class="muted small">Menus déroulants : une option par ligne. Les abréviations QR sont générées automatiquement.</p>
     </div>
@@ -63,8 +77,8 @@
 
     <div class="card">
       <div class="mode-switch">
-        <button class="btn btn-blue" data-mode="indiv">Mode individuel</button>
-        <button class="btn" data-mode="team">Mode collectif</button>
+        <button class="btn btn-blue big" data-mode="indiv">Mode individuel</button>
+        <button class="btn big" data-mode="team">Mode collectif</button>
       </div>
       <div id="modeHint" class="muted small"></div>
     </div>
