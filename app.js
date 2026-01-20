@@ -80,8 +80,25 @@
     state.config.timerDuration = Math.max(5, Number(state.config.timerDuration) || 60);
   }
 
-  const colorPalette = ["#2563eb","#0ea5e9","#38bdf8","#60a5fa","#1d4ed8","#3b82f6","#0284c7","#7dd3fc"];
+  const colorPalette = ["#2563eb","#0ea5e9","#38bdf8","#60a5fa","#1d4ed8","#3b82f6","#0284c7","#7dd3fc","#5eead4","#a8a29e"];
   const timers = new Map();
+
+  function hexToRgb(hex){
+    if(!hex || typeof hex !== "string") return null;
+    const normalized = hex.replace("#","");
+    if(normalized.length !== 6) return null;
+    const num = parseInt(normalized,16);
+    return {
+      r:(num>>16)&255,
+      g:(num>>8)&255,
+      b:num&255
+    };
+  }
+  function withAlpha(hex, alpha){
+    const rgb = hexToRgb(hex);
+    if(!rgb) return hex;
+    return `rgba(${rgb.r},${rgb.g},${rgb.b},${alpha})`;
+  }
 
   function uid(){
     return Math.random().toString(36).slice(2,9);
@@ -130,12 +147,14 @@
           p.timerMs = p.timerMs || 0;
           p.timerRunning = Boolean(p.timerRunning);
           if(!p.timerRunning) p.timerStart = null;
+          if(!p.timerTarget) p.timerTarget = timerTargetMs();
         });
         state.teams.forEach((t, idx)=>{
           if(!t.color) t.color = colorPalette[idx % colorPalette.length];
           t.timerMs = t.timerMs || 0;
           t.timerRunning = Boolean(t.timerRunning);
           if(!t.timerRunning) t.timerStart = null;
+          if(!t.timerTarget) t.timerTarget = timerTargetMs();
         });
         state.currentParticipant = parsed.currentParticipant || (state.participants[0]?.id || null);
         state.currentTeam = parsed.currentTeam || (state.teams[0]?.id || null);
@@ -330,7 +349,8 @@
       color: colorPalette[state.participants.length % colorPalette.length],
       timerMs: 0,
       timerRunning: false,
-      timerStart: null
+      timerStart: null,
+      timerTarget: timerTargetMs()
     };
     state.participants.push(entry);
     state.currentParticipant = entry.id;
@@ -348,7 +368,8 @@
       color: colorPalette[state.teams.length % colorPalette.length],
       timerMs: 0,
       timerRunning: false,
-      timerStart: null
+      timerStart: null,
+      timerTarget: timerTargetMs()
     };
     state.teams.push(entry);
     state.currentTeam = entry.id;
@@ -427,7 +448,7 @@
 
     const chronoBlock = state.config.chrono ? buildTimerBlock(target) : "";
 
-    elements.participantForm.innerHTML = `
+    const formHtml = `
       <div class="input-row">
         <label class="field">
           <span>Prénom / identifiant</span>
@@ -449,6 +470,7 @@
         <button class="btn btn-red" id="btnDeleteParticipant">Supprimer</button>
       </div>
     `;
+    elements.participantForm.innerHTML = `<div class="entry-card" style="border-color:${target.color};background:${withAlpha(target.color,0.08)}">${formHtml}</div>`;
 
     document.getElementById("participantName").oninput = (e)=>{
       target.prenom = e.target.value;
@@ -557,7 +579,7 @@
 
     const chronoBlock = state.config.chrono ? buildTimerBlock(team) : "";
 
-    elements.teamForm.innerHTML = `
+    const teamHtml = `
       <div class="input-row">
         <label class="field">
           <span>Nom de l’équipe / cordée</span>
@@ -579,6 +601,7 @@
         <button class="btn btn-red" id="btnDeleteTeam">Supprimer</button>
       </div>
     `;
+    elements.teamForm.innerHTML = `<div class="entry-card" style="border-color:${team.color};background:${withAlpha(team.color,0.08)}">${teamHtml}</div>`;
 
     document.getElementById("teamName").oninput = (e)=>{
       team.name = e.target.value;
@@ -622,16 +645,28 @@
   function timerTargetMs(){
     return Math.max(5, Number(state.config.timerDuration) || 60) * 1000;
   }
+  function entryTargetMs(entry){
+    if(!isTimerMode()) return timerTargetMs();
+    const fallback = timerTargetMs();
+    if(!entry.timerTarget) entry.timerTarget = fallback;
+    return Math.max(5*1000, Number(entry.timerTarget) || fallback);
+  }
 
   function buildTimerBlock(entry){
+    const targetMs = entryTargetMs(entry);
     const elapsed = entry.timerRunning
       ? (entry.timerMs || 0) + (Date.now() - (entry.timerStart || Date.now()))
       : (entry.timerMs || 0);
-    const durationMs = timerTargetMs();
-    const displayMs = isTimerMode() ? Math.max(durationMs - elapsed, 0) : elapsed;
+    const displayMs = isTimerMode() ? Math.max(targetMs - elapsed, 0) : elapsed;
     const label = isTimerMode()
-      ? `Minuteur — ${state.config.timerDuration || 60}s`
+      ? `Minuteur — ${Math.round(targetMs/1000)}s`
       : "Chronomètre";
+    const targetControl = isTimerMode() ? `
+      <div class="timer-config">
+        <label>Durée (sec)
+          <input type="number" min="5" max="3600" data-target-input value="${Math.round(targetMs/1000)}">
+        </label>
+      </div>` : "";
     return `
       <div class="timer-block" data-id="${entry.id}">
         <div>
@@ -643,6 +678,7 @@
           <button class="btn btn-amber small" data-timer="stop">■ Stop</button>
           <button class="btn btn-light small" data-timer="reset">↺ Reset</button>
         </div>
+        ${targetControl}
       </div>
     `;
   }
@@ -690,12 +726,13 @@
     entry.timerRunning = false;
     entry.timerMs = (entry.timerMs || 0) + (Date.now() - (entry.timerStart || Date.now()));
     if(isTimerMode()){
-      entry.timerMs = Math.min(entry.timerMs, timerTargetMs());
+      const target = entryTargetMs(entry);
+      entry.timerMs = Math.min(entry.timerMs, target);
     }
     entry.timerStart = null;
     cleanupTimer(entry.id);
     const ms = isTimerMode()
-      ? Math.max(timerTargetMs() - entry.timerMs, 0)
+      ? Math.max(entryTargetMs(entry) - entry.timerMs, 0)
       : entry.timerMs;
     updateTimerDisplay(entry.id, ms);
     saveSession();
@@ -706,7 +743,7 @@
     entry.timerStart = null;
     entry.timerMs = 0;
     cleanupTimer(entry.id);
-    const ms = isTimerMode() ? timerTargetMs() : 0;
+    const ms = isTimerMode() ? entryTargetMs(entry) : 0;
     updateTimerDisplay(entry.id, ms);
     saveSession();
   }
@@ -726,9 +763,21 @@
       runTimer(entry);
     }else{
       const ms = isTimerMode()
-        ? Math.max(timerTargetMs() - (entry.timerMs || 0), 0)
+        ? Math.max(entryTargetMs(entry) - (entry.timerMs || 0), 0)
         : (entry.timerMs || 0);
       updateTimerDisplay(entry.id, ms);
+    }
+    const targetInput = block.querySelector("input[data-target-input]");
+    if(targetInput){
+      targetInput.addEventListener("change", ()=>{
+        const secs = Math.max(5, Math.min(3600, Number(targetInput.value) || Math.round(entryTargetMs(entry)/1000)));
+        entry.timerTarget = secs * 1000;
+        targetInput.value = secs;
+        if(!entry.timerRunning){
+          updateTimerDisplay(entry.id, entry.timerTarget);
+        }
+        saveSession();
+      });
     }
   }
 
@@ -819,13 +868,15 @@
     const bytes = encoder ? encoder.encode(json).length : json.length;
     const max = window.ScanProfExport?.MAX_QR_BYTES || 2800;
     const fieldCount = Math.max(0, Object.keys(payload[0] || {}).length - 1);
-    elements.entryQrTitle.textContent = type === "team"
+    const title = type === "team"
       ? `QR équipe — ${entry.name || "Equipe"}`
       : `QR élève — ${entry.prenom || "Élève"}`;
-    elements.entryQrStatus.textContent = `Champs : ${fieldCount} • ${bytes}/${max} octets`;
+    let status = `Champs : ${fieldCount} • ${bytes}/${max} octets`;
     if(bytes > max){
-      elements.entryQrStatus.textContent += " • Réduisez la saisie ou scindez en plusieurs QR.";
+      status += " • Réduisez la saisie ou scindez en plusieurs QR.";
     }
+    elements.entryQrTitle.textContent = title;
+    elements.entryQrStatus.textContent = status;
 
     if(typeof QRCode === "undefined"){
       elements.entryQrBox.textContent = "Librairie QR indisponible.";
@@ -838,6 +889,9 @@
       });
       try{
         sessionStorage.setItem(LAST_QR_KEY, json);
+        sessionStorage.setItem("eps_datahub_last_qr_text", json);
+        sessionStorage.setItem("eps_datahub_last_qr_scope", title);
+        sessionStorage.setItem("eps_datahub_last_qr_note", status);
       }catch(e){}
     }
     entryQrModal.classList.add("visible");
@@ -883,17 +937,29 @@
     all.forEach(item=>{
       const card = document.createElement("div");
       card.className = "summary-item";
+      const color = item.ref.color || "#2563eb";
+      card.style.borderColor = color;
+      card.style.background = withAlpha(color, 0.08);
       const title = item.type === "team"
         ? `${item.ref.name || "Equipe"} — ${item.ref.members || ""}`
         : `${item.ref.prenom || "Élève"} ${item.ref.classe || ""}`;
       card.innerHTML = `
         <strong>${title}</strong>
         <div class="summary-actions">
-          <button class="btn btn-blue small">QR ScanProf</button>
+          <button type="button" class="btn btn-blue small" data-summary="${item.ref.id}" data-kind="${item.type}">QR ScanProf</button>
         </div>
       `;
-      card.querySelector("button").onclick = ()=>openEntryQrModal(item.ref, item.type);
       list.appendChild(card);
+    });
+    list.querySelectorAll("button[data-summary]").forEach(btn=>{
+      btn.onclick = ()=>{
+        const id = btn.dataset.summary;
+        const kind = btn.dataset.kind;
+        const ref = kind === "team"
+          ? state.teams.find(t=>t.id===id)
+          : state.participants.find(p=>p.id===id);
+        if(ref) openEntryQrModal(ref, kind);
+      };
     });
   }
 
@@ -908,6 +974,11 @@
     timers.clear();
     localStorage.removeItem(CONFIG_KEY);
     localStorage.removeItem(SESSION_KEY);
+    sessionStorage.removeItem(LAST_QR_KEY);
+    sessionStorage.removeItem("eps_datahub_last_qr_text");
+    sessionStorage.removeItem("eps_datahub_last_qr_scope");
+    sessionStorage.removeItem("eps_datahub_last_qr_note");
+    sessionStorage.removeItem(LAST_CONFIG_QR_KEY);
     state.config = { fields: [], chrono: false, chronoMode: "chrono", timerDuration: 60 };
     state.participants = [];
     state.teams = [];

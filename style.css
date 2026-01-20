@@ -112,6 +112,9 @@ textarea{min-height:90px;resize:vertical;}
   justify-content:center;
   margin-bottom:8px;
 }
+.mode-switch .btn{
+  flex:1 1 200px;
+}
 .tab-grid{
   display:flex;
   flex-wrap:wrap;
@@ -140,10 +143,22 @@ textarea{min-height:90px;resize:vertical;}
   opacity:0.85;
   margin-top:4px;
 }
+.tab .tab-name{
+  font-size:20px;
+  font-weight:700;
+  letter-spacing:0.03em;
+}
 .tab.active{
   outline:3px solid rgba(255,255,255,0.6);
 }
 .pane{margin-top:16px;}
+.entry-card{
+  border:2px solid var(--border);
+  border-radius:22px;
+  padding:20px;
+  box-shadow:0 14px 32px rgba(15,23,42,0.08);
+  background:#fff;
+}
 .entry-form{
   max-width:760px;
   margin:0 auto;
@@ -297,6 +312,19 @@ textarea{min-height:90px;resize:vertical;}
   display:flex;
   gap:10px;
   flex-wrap:wrap;
+}
+.timer-config{
+  margin-top:10px;
+}
+.timer-config label{
+  font-size:13px;
+  color:#0f172a;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+.timer-config input{
+  max-width:120px;
 }
 .qr-box{
   min-height:240px;
