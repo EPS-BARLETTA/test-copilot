@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title>EPS DataHub – Export PDF</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body{
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+      margin:0;
+      padding:16px;
+      background:#f5f5f5;
+      color:#111;
+    }
+    .page{
+      max-width:1000px;
+      margin:0 auto;
+      background:#fff;
+      border-radius:18px;
+      padding:20px;
+      box-shadow:0 8px 22px rgba(0,0,0,0.08);
+    }
+    h1,h2,h3{margin:8px 0;}
+    table{
+      width:100%;
+      border-collapse:collapse;
+      margin:16px 0;
+      font-size:13px;
+    }
+    th,td{
+      border:1px solid #cbd5f5;
+      padding:6px;
+      text-align:left;
+    }
+    th{background:#f1f5f9;}
+    .muted{color:#718096;font-size:13px;}
+    @media print{
+      body{background:#fff;padding:0;}
+      .page{box-shadow:none;border-radius:0;}
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <h1>EPS DataHub</h1>
+    <p class="muted" id="meta"></p>
+
+    <section>
+      <h2>Participants</h2>
+      <div id="participants"></div>
+    </section>
+
+    <section>
+      <h2>Équipes</h2>
+      <div id="teams"></div>
+    </section>
+  </div>
+
+<script>
+const CONFIG_KEY = "eps_datahub_config_v1";
+const SESSION_KEY = "eps_datahub_session_v1";
+
+function render(){
+  const config = JSON.parse(localStorage.getItem(CONFIG_KEY) || "{}");
+  const session = JSON.parse(localStorage.getItem(SESSION_KEY) || "{}");
+  const meta = document.getElementById("meta");
+  meta.textContent = config.title
+    ? `${config.title} – ${new Date().toLocaleString()}`
+    : `Export du ${new Date().toLocaleString()}`;
+
+  const participants = session.participants || [];
+  const teams = session.teams || [];
+  const fields = config.fields || [];
+
+  document.getElementById("participants").innerHTML = participants.length
+    ? buildTable(participants, fields, false)
+    : "<p class='muted'>Aucun élève enregistré.</p>";
+
+  document.getElementById("teams").innerHTML = teams.length
+    ? buildTable(teams, fields, true)
+    : "<p class='muted'>Aucune équipe.</p>";
+
+  setTimeout(()=>window.print(), 400);
+}
+
+function buildTable(items, fields, isTeam){
+  const labels = fields.map(f=>f.label);
+  const header = isTeam
+    ? ["Équipe / cordée","Membres",...labels,"Commentaire"]
+    : ["Prénom","Classe",...labels,"Commentaire"];
+  const rows = items.map(item=>{
+    const base = isTeam
+      ? [item.name || "", item.members || ""]
+      : [item.prenom || "", item.classe || ""];
+    const values = (fields || []).map(field=>{
+      return (item.fields && item.fields[field.id]) || "";
+    });
+    return [...base, ...values, item.note || ""];
+  });
+
+  return `
+    <table>
+      <thead>
+        <tr>${header.map(h=>`<th>${h}</th>`).join("")}</tr>
+      </thead>
+      <tbody>
+        ${rows.map(row=>`<tr>${row.map(cell=>`<td>${cell}</td>`).join("")}</tr>`).join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+render();
+</script>
+</body>
+</html>

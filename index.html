@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <title>EPS DataHub</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<div class="app">
+  <section id="cover" class="page visible">
+    <div class="hero">
+      <h1>EPS DataHub</h1>
+      <p>Configurer, recueillir et partager des données compatibles ScanProf.</p>
+      <div class="hero-actions">
+        <button class="btn btn-green big" id="btnGoConfig">Configurer la séance</button>
+        <button class="btn btn-blue big" id="btnGoEntry">Saisie rapide (mode élève)</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="config" class="page">
+    <header class="section-head">
+      <div>
+        <h2>Champs à renseigner</h2>
+        <p class="muted">Créez vos observables (texte libre ou menus déroulants) puis partagez la configuration via QR.</p>
+      </div>
+      <div class="head-actions">
+        <button class="btn btn-amber" id="btnBackCover1">⬅ Accueil</button>
+        <button class="btn btn-blue" id="btnShareConfig">Partager la configuration</button>
+      </div>
+    </header>
+
+    <div class="card">
+      <div class="flex-between">
+        <h3>Liste des champs</h3>
+        <button class="btn btn-green small" id="btnAddField">+ Ajouter un champ</button>
+      </div>
+      <div id="fieldList"></div>
+      <p class="muted small">Menus déroulants : une option par ligne. Les abréviations QR sont générées automatiquement.</p>
+    </div>
+  </section>
+
+  <section id="entry" class="page">
+    <header class="section-head">
+      <div>
+        <h2>Saisie des observations</h2>
+        <p id="sessionInfo" class="muted"></p>
+      </div>
+      <div class="head-actions">
+        <button class="btn btn-amber" id="btnBackCover2">⬅ Accueil</button>
+        <button class="btn btn-blue" id="btnGoSummary">Voir le bilan</button>
+      </div>
+    </header>
+
+    <div class="card">
+      <div class="mode-switch">
+        <button class="btn btn-blue" data-mode="indiv">Mode individuel</button>
+        <button class="btn" data-mode="team">Mode collectif</button>
+        <button class="btn btn-light" id="btnLoadConfig">Importer config (JSON)</button>
+      </div>
+      <div id="modeHint" class="muted small"></div>
+    </div>
+
+    <div id="indivPane" class="pane">
+      <div class="card">
+        <div class="flex-between">
+          <h3>Participants</h3>
+          <button class="btn btn-green small" id="btnAddParticipant">+ Ajouter un élève</button>
+        </div>
+        <div id="participantTabs" class="tab-list"></div>
+        <div id="participantForm"></div>
+      </div>
+    </div>
+
+    <div id="teamPane" class="pane">
+      <div class="card">
+        <div class="flex-between">
+          <h3>Équipes</h3>
+          <button class="btn btn-green small" id="btnAddTeam">+ Ajouter une équipe</button>
+        </div>
+        <div id="teamTabs" class="tab-list"></div>
+        <div id="teamForm"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="summary" class="page">
+    <header class="section-head">
+      <div>
+        <h2>Bilan & exports</h2>
+        <p class="muted">Chaque QR est compatible ScanProf. Exportez également un PDF complet.</p>
+      </div>
+      <div class="head-actions">
+        <button class="btn btn-amber" id="btnBackEntry">⬅ Retour saisie</button>
+        <button class="btn btn-green" id="btnOpenPrint">PDF détaillé</button>
+      </div>
+    </header>
+
+    <div class="card">
+      <h3>Participants</h3>
+      <div id="summaryList" class="summary-list"></div>
+    </div>
+  </section>
+</div>
+
+<div class="modal" id="configQrModal">
+  <div class="modal-content">
+    <h3>QR configuration</h3>
+    <p class="muted small">Scannez ce code pour charger automatiquement les paramètres sur d’autres tablettes.</p>
+    <div class="qr-box" id="configQrBox"></div>
+    <div class="modal-actions">
+      <button class="btn btn-blue" id="btnConfigQrClose">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="entryQrModal">
+  <div class="modal-content">
+    <h3 id="entryQrTitle">QR élève</h3>
+    <p class="muted small" id="entryQrStatus"></p>
+    <div class="qr-box" id="entryQrBox"></div>
+    <div class="modal-actions">
+      <button class="btn btn-blue" id="btnEntryQrClose">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<script src="./qrcode.min.js"></script>
+<script src="./scanprof-export.js"></script>
+<script src="./app.js"></script>
+</body>
+</html>
