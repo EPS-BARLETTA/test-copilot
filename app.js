@@ -18,7 +18,8 @@
 
   const state = {
     config: {
-      fields: []
+      fields: [],
+      chrono: false
     },
     mode: "indiv",
     participants: [],
@@ -35,6 +36,7 @@
     btnGoSummary: document.getElementById("btnGoSummary"),
     btnBackEntry: document.getElementById("btnBackEntry"),
     btnAddField: document.getElementById("btnAddField"),
+    cfgChrono: document.getElementById("cfgChrono"),
     fieldList: document.getElementById("fieldList"),
     participantTabs: document.getElementById("participantTabs"),
     participantForm: document.getElementById("participantForm"),
@@ -47,15 +49,29 @@
     btnAddTeam: document.getElementById("btnAddTeam"),
     modeButtons: document.querySelectorAll(".mode-switch button[data-mode]"),
     btnShareConfig: document.getElementById("btnShareConfig"),
+    btnResetApp: document.getElementById("btnResetApp"),
     configQrBox: document.getElementById("configQrBox"),
     btnConfigQrClose: document.getElementById("btnConfigQrClose"),
     entryQrBox: document.getElementById("entryQrBox"),
     entryQrTitle: document.getElementById("entryQrTitle"),
     entryQrStatus: document.getElementById("entryQrStatus"),
     btnEntryQrClose: document.getElementById("btnEntryQrClose"),
-    btnLoadConfig: document.getElementById("btnLoadConfig"),
+    btnEntryQrFullscreen: document.getElementById("btnEntryQrFullscreen"),
     btnOpenPrint: document.getElementById("btnOpenPrint")
   };
+
+  function normalizeConfig(){
+    if(!state.config || typeof state.config !== "object"){
+      state.config = { fields: [], chrono: false };
+    }
+    if(!Array.isArray(state.config.fields)){
+      state.config.fields = [];
+    }
+    state.config.chrono = Boolean(state.config.chrono);
+  }
+
+  const colorPalette = ["#2563eb","#0ea5e9","#38bdf8","#60a5fa","#1d4ed8","#3b82f6","#0284c7","#7dd3fc"];
+  const timers = new Map();
 
   function uid(){
     return Math.random().toString(36).slice(2,9);
@@ -83,6 +99,7 @@
         const parsed = JSON.parse(raw);
         if(parsed && Array.isArray(parsed.fields)){
           state.config = parsed;
+          normalizeConfig();
         }
       }
     }catch(e){
@@ -98,6 +115,18 @@
       if(parsed && Array.isArray(parsed.participants)){
         state.participants = parsed.participants;
         state.teams = parsed.teams || [];
+        state.participants.forEach((p, idx)=>{
+          if(!p.color) p.color = colorPalette[idx % colorPalette.length];
+          p.timerMs = p.timerMs || 0;
+          p.timerRunning = Boolean(p.timerRunning);
+          if(!p.timerRunning) p.timerStart = null;
+        });
+        state.teams.forEach((t, idx)=>{
+          if(!t.color) t.color = colorPalette[idx % colorPalette.length];
+          t.timerMs = t.timerMs || 0;
+          t.timerRunning = Boolean(t.timerRunning);
+          if(!t.timerRunning) t.timerStart = null;
+        });
         state.currentParticipant = parsed.currentParticipant || (state.participants[0]?.id || null);
         state.currentTeam = parsed.currentTeam || (state.teams[0]?.id || null);
         state.mode = parsed.mode || "indiv";
@@ -112,10 +141,19 @@
     const token = params.get("config");
     if(!token) return;
     try{
-      const json = decodeURIComponent(atob(token));
+      let json;
+      try{
+        const decoded = atob(token);
+        json = window.LZString && window.LZString.decompressFromEncodedURIComponent
+          ? window.LZString.decompressFromEncodedURIComponent(decoded)
+          : decodeURIComponent(decoded);
+      }catch(err){
+        json = decodeURIComponent(atob(token));
+      }
       const data = JSON.parse(json);
       if(data && Array.isArray(data.fields)){
         state.config = data;
+        normalizeConfig();
         importedFromQuery = true;
         saveConfig();
         params.delete("config");
@@ -243,6 +281,7 @@
         saveConfig();
       });
     });
+    updateSessionInfo();
   }
 
   function addField(){
@@ -266,9 +305,10 @@
     });
     document.getElementById("indivPane").style.display = state.mode === "indiv" ? "block" : "none";
     document.getElementById("teamPane").style.display = state.mode === "team" ? "block" : "none";
-    elements.modeHint.textContent = state.mode === "indiv"
+    const base = state.mode === "indiv"
       ? "Ajoutez vos élèves puis saisissez les champs paramétrés."
       : "Chaque équipe peut contenir plusieurs membres. Les champs sont communs à la cordée / équipe.";
+    elements.modeHint.textContent = state.config.chrono ? `${base} Chrono disponible.` : base;
   }
 
   function addParticipant(){
@@ -277,7 +317,11 @@
       prenom: "",
       classe: "",
       note: "",
-      fields: {}
+      fields: {},
+      color: colorPalette[state.participants.length % colorPalette.length],
+      timerMs: 0,
+      timerRunning: false,
+      timerStart: null
     };
     state.participants.push(entry);
     state.currentParticipant = entry.id;
@@ -291,7 +335,11 @@
       name: "",
       members: "",
       note: "",
-      fields: {}
+      fields: {},
+      color: colorPalette[state.teams.length % colorPalette.length],
+      timerMs: 0,
+      timerRunning: false,
+      timerStart: null
     };
     state.teams.push(entry);
     state.currentTeam = entry.id;
@@ -307,18 +355,38 @@
       elements.participantForm.innerHTML = "";
       return;
     }
-    state.participants.forEach(p=>{
-      const tab = document.createElement("div");
+    const grid = document.createElement("div");
+    grid.className = "tab-grid";
+    state.participants.forEach((p, idx)=>{
+      if(!p.color) p.color = colorPalette[idx % colorPalette.length];
+      const tab = document.createElement("button");
+      tab.type = "button";
       tab.className = "tab" + (state.currentParticipant===p.id ? " active" : "");
-      tab.textContent = p.prenom || "Élève";
+      tab.dataset.id = p.id;
+      tab.style.background = p.color;
+      tab.innerHTML = `
+        <div class="tab-name">${p.prenom || "Élève"}</div>
+        <div class="tab-sub">${p.classe || ""}</div>
+      `;
       tab.onclick = ()=>{
         state.currentParticipant = p.id;
         renderParticipants();
         saveSession();
       };
-      tabs.appendChild(tab);
+      grid.appendChild(tab);
     });
+    tabs.appendChild(grid);
     renderParticipantForm();
+  }
+
+  function updateParticipantTabLabel(id, prenom, classe){
+    const tab = elements.participantTabs.querySelector(`[data-id="${id}"]`);
+    if(tab){
+      const nameSpan = tab.querySelector(".tab-name");
+      const subSpan = tab.querySelector(".tab-sub");
+      if(nameSpan) nameSpan.textContent = prenom || "Élève";
+      if(subSpan) subSpan.textContent = classe || "";
+    }
   }
 
   function renderParticipantForm(){
@@ -348,6 +416,8 @@
       `;
     }).join("");
 
+    const chronoBlock = state.config.chrono ? buildTimerBlock(target) : "";
+
     elements.participantForm.innerHTML = `
       <div class="input-row">
         <label class="field">
@@ -359,6 +429,7 @@
           <input id="participantClass" value="${target.classe || ""}">
         </label>
       </div>
+      ${state.config.chrono ? chronoBlock : ""}
       ${inputs}
       <label class="field">
         <span>Commentaire</span>
@@ -372,11 +443,12 @@
 
     document.getElementById("participantName").oninput = (e)=>{
       target.prenom = e.target.value;
-      renderParticipants();
+      updateParticipantTabLabel(target.id, target.prenom, target.classe);
       saveSession();
     };
     document.getElementById("participantClass").oninput = (e)=>{
       target.classe = e.target.value;
+      updateParticipantTabLabel(target.id, target.prenom, target.classe);
       saveSession();
     };
     document.getElementById("participantNote").oninput = (e)=>{
@@ -394,11 +466,15 @@
       openEntryQrModal(target,"indiv");
     };
     document.getElementById("btnDeleteParticipant").onclick = ()=>{
+      cleanupTimer(target.id);
       state.participants = state.participants.filter(p=>p.id!==target.id);
       state.currentParticipant = state.participants[0]?.id || null;
       saveSession();
       renderParticipants();
     };
+    if(state.config.chrono){
+      attachTimerControls(target);
+    }
   }
 
   function renderTeams(){
@@ -409,18 +485,38 @@
       elements.teamForm.innerHTML = "";
       return;
     }
-    state.teams.forEach(team=>{
-      const tab = document.createElement("div");
+    const grid = document.createElement("div");
+    grid.className = "tab-grid";
+    state.teams.forEach((team, idx)=>{
+      if(!team.color) team.color = colorPalette[idx % colorPalette.length];
+      const tab = document.createElement("button");
+      tab.type = "button";
       tab.className = "tab" + (state.currentTeam===team.id ? " active" : "");
-      tab.textContent = team.name || "Équipe";
+      tab.dataset.id = team.id;
+      tab.style.background = team.color;
+      tab.innerHTML = `
+        <div class="tab-name">${team.name || "Équipe"}</div>
+        <div class="tab-sub">${team.members || ""}</div>
+      `;
       tab.onclick = ()=>{
         state.currentTeam = team.id;
         renderTeams();
         saveSession();
       };
-      tabs.appendChild(tab);
+      grid.appendChild(tab);
     });
+    tabs.appendChild(grid);
     renderTeamForm();
+  }
+
+  function updateTeamTabLabel(id, name, members){
+    const tab = elements.teamTabs.querySelector(`[data-id="${id}"]`);
+    if(tab){
+      const nameSpan = tab.querySelector(".tab-name");
+      const subSpan = tab.querySelector(".tab-sub");
+      if(nameSpan) nameSpan.textContent = name || "Équipe";
+      if(subSpan) subSpan.textContent = members || "";
+    }
   }
 
   function renderTeamForm(){
@@ -450,6 +546,8 @@
       `;
     }).join("");
 
+    const chronoBlock = state.config.chrono ? buildTimerBlock(team) : "";
+
     elements.teamForm.innerHTML = `
       <div class="input-row">
         <label class="field">
@@ -461,6 +559,7 @@
           <input id="teamMembers" value="${team.members || ""}" placeholder="Ex : Léo, Ana, Tom">
         </label>
       </div>
+      ${state.config.chrono ? chronoBlock : ""}
       ${inputs}
       <label class="field">
         <span>Commentaire</span>
@@ -474,11 +573,12 @@
 
     document.getElementById("teamName").oninput = (e)=>{
       team.name = e.target.value;
-      renderTeams();
+      updateTeamTabLabel(team.id, team.name, team.members);
       saveSession();
     };
     document.getElementById("teamMembers").oninput = (e)=>{
       team.members = e.target.value;
+      updateTeamTabLabel(team.id, team.name, team.members);
       saveSession();
     };
     document.getElementById("teamNote").oninput = (e)=>{
@@ -496,16 +596,111 @@
       openEntryQrModal(team,"team");
     };
     document.getElementById("btnDeleteTeam").onclick = ()=>{
+      cleanupTimer(team.id);
       state.teams = state.teams.filter(t=>t.id!==team.id);
       state.currentTeam = state.teams[0]?.id || null;
       saveSession();
       renderTeams();
     };
+    if(state.config.chrono){
+      attachTimerControls(team);
+    }
+  }
+
+  function buildTimerBlock(entry){
+    const current = entry.timerRunning
+      ? (entry.timerMs || 0) + (Date.now() - (entry.timerStart || Date.now()))
+      : (entry.timerMs || 0);
+    return `
+      <div class="timer-block" data-id="${entry.id}">
+        <div class="timer-display" id="timerDisplay-${entry.id}">${formatDuration(current)}</div>
+        <div class="timer-actions">
+          <button class="btn btn-green small" data-timer="start">▶︎ Démarrer</button>
+          <button class="btn btn-amber small" data-timer="stop">■ Stop</button>
+          <button class="btn btn-light small" data-timer="reset">↺ Reset</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function formatDuration(ms=0){
+    const total = Math.max(0, Math.floor(ms));
+    const minutes = Math.floor(total / 60000);
+    const seconds = Math.floor((total % 60000) / 1000);
+    const tenths = Math.floor((total % 1000) / 100);
+    return `${String(minutes).padStart(2,"0")}:${String(seconds).padStart(2,"0")}.${tenths}`;
+  }
+
+  function updateTimerDisplay(id, ms){
+    const el = document.getElementById(`timerDisplay-${id}`);
+    if(el) el.textContent = formatDuration(ms);
+  }
+
+  function runTimer(entry){
+    cleanupTimer(entry.id);
+    const interval = setInterval(()=>{
+      const ms = (entry.timerMs || 0) + (Date.now() - (entry.timerStart || Date.now()));
+      updateTimerDisplay(entry.id, ms);
+    }, 120);
+    timers.set(entry.id, interval);
+  }
+
+  function startTimer(entry){
+    if(entry.timerRunning) return;
+    entry.timerRunning = true;
+    entry.timerStart = Date.now();
+    runTimer(entry);
+    saveSession();
+  }
+
+  function stopTimer(entry){
+    if(!entry.timerRunning) return;
+    entry.timerRunning = false;
+    entry.timerMs = (entry.timerMs || 0) + (Date.now() - (entry.timerStart || Date.now()));
+    entry.timerStart = null;
+    cleanupTimer(entry.id);
+    updateTimerDisplay(entry.id, entry.timerMs);
+    saveSession();
+  }
+
+  function resetTimer(entry){
+    entry.timerRunning = false;
+    entry.timerStart = null;
+    entry.timerMs = 0;
+    cleanupTimer(entry.id);
+    updateTimerDisplay(entry.id, 0);
+    saveSession();
+  }
+
+  function attachTimerControls(entry){
+    const block = document.querySelector(`.timer-block[data-id="${entry.id}"]`);
+    if(!block) return;
+    block.querySelectorAll("button[data-timer]").forEach(btn=>{
+      btn.onclick = ()=>{
+        const action = btn.dataset.timer;
+        if(action === "start") startTimer(entry);
+        else if(action === "stop") stopTimer(entry);
+        else resetTimer(entry);
+      };
+    });
+    if(entry.timerRunning){
+      runTimer(entry);
+    }else{
+      updateTimerDisplay(entry.id, entry.timerMs || 0);
+    }
+  }
+
+  function cleanupTimer(id){
+    if(timers.has(id)){
+      clearInterval(timers.get(id));
+      timers.delete(id);
+    }
   }
 
   function updateSessionInfo(){
-    if(state.config.fields.length){
-      elements.sessionInfo.textContent = `${state.config.fields.length} champ(s) actifs.`;
+    const count = state.config.fields.length;
+    if(count){
+      elements.sessionInfo.textContent = `${count} champ(s) actifs${state.config.chrono ? " • Chrono actif" : ""}.`;
     }else{
       elements.sessionInfo.textContent = "Aucun champ paramétré. Configurez-les ou importez une configuration.";
     }
@@ -516,8 +711,11 @@
       alert("Ajoutez au moins un champ pour générer un QR.");
       return;
     }
-    const payload = JSON.stringify(state.config);
-    const encoded = btoa(encodeURIComponent(payload));
+    const signal = JSON.stringify(state.config);
+    const payload = (window.LZString && window.LZString.compressToEncodedURIComponent)
+      ? window.LZString.compressToEncodedURIComponent(signal)
+      : signal;
+    const encoded = btoa(payload);
     const url = `${window.location.origin}${window.location.pathname}?config=${encoded}`;
     elements.configQrBox.innerHTML = "";
     if(typeof QRCode === "undefined"){
@@ -548,12 +746,19 @@
       return;
     }
     elements.entryQrBox.innerHTML = "";
+    const json = JSON.stringify(payload);
+    const encoder = typeof TextEncoder !== "undefined" ? new TextEncoder() : null;
+    const bytes = encoder ? encoder.encode(json).length : json.length;
+    const max = window.ScanProfExport?.MAX_QR_BYTES || 2800;
+    const fieldCount = Math.max(0, Object.keys(payload[0] || {}).length - 1);
     elements.entryQrTitle.textContent = type === "team"
       ? `QR équipe — ${entry.name || "Equipe"}`
       : `QR élève — ${entry.prenom || "Élève"}`;
-    elements.entryQrStatus.textContent = `Champs exportés : ${Object.keys(payload[0] || {}).length - 1}`;
+    elements.entryQrStatus.textContent = `Champs : ${fieldCount} • ${bytes}/${max} octets`;
+    if(bytes > max){
+      elements.entryQrStatus.textContent += " • Réduisez la saisie ou scindez en plusieurs QR.";
+    }
 
-    const json = JSON.stringify(payload);
     if(typeof QRCode === "undefined"){
       elements.entryQrBox.textContent = "Librairie QR indisponible.";
     }else{
@@ -590,6 +795,9 @@
         data[`observable_${index+1}`] = `${field.code || `F${index+1}`} ${value}`.trim();
       }
     });
+    if(state.config.chrono && entry.timerMs){
+      data.chrono = formatDuration(entry.timerMs);
+    }
     return window.ScanProfExport.wrapPayload(data);
   }
 
@@ -626,24 +834,23 @@
     window.open("print.html","_blank");
   }
 
-  // Import manual config
-  function promptConfigImport(){
-    const value = prompt("Collez ici le JSON de configuration ou laissez vide.");
-    if(!value) return;
-    try{
-      const data = JSON.parse(value);
-      if(Array.isArray(data.fields)){
-        state.config = data;
-        saveConfig();
-        renderFields();
-        updateSessionInfo();
-        alert("Configuration importée.");
-      }else{
-        alert("Format inattendu.");
-      }
-    }catch(e){
-      alert("Impossible de lire cette configuration.");
-    }
+  function resetApplication(){
+    if(!confirm("Effacer la configuration et toutes les données ?")) return;
+    localStorage.removeItem(CONFIG_KEY);
+    localStorage.removeItem(SESSION_KEY);
+    state.config = { fields: [], chrono: false };
+    state.participants = [];
+    state.teams = [];
+    state.currentParticipant = null;
+    state.currentTeam = null;
+    saveConfig();
+    saveSession();
+    renderFields();
+    renderParticipants();
+    renderTeams();
+    renderModeButtons();
+    updateSessionInfo();
+    alert("Application réinitialisée.");
   }
 
   function init(){
@@ -657,8 +864,19 @@
     renderModeButtons();
     updateSessionInfo();
 
-    elements.btnGoConfig.onclick = ()=>setPage("config");
     elements.btnGoEntry.onclick = ()=>setPage("entry");
+    elements.btnGoConfig.onclick = ()=>{
+      if(importedFromQuery){
+        alert("Section réservée à l’enseignant.");
+        return;
+      }
+      const code = prompt("Code enseignant ?");
+      if(code === "57"){
+        setPage("config");
+      }else if(code !== null){
+        alert("Code incorrect.");
+      }
+    };
     elements.btnBackCover1.onclick = ()=>setPage("cover");
     elements.btnBackCover2.onclick = ()=>setPage("cover");
     elements.btnGoSummary.onclick = ()=>{
@@ -669,11 +887,27 @@
     elements.btnAddField.onclick = addField;
     elements.btnAddParticipant.onclick = addParticipant;
     elements.btnAddTeam.onclick = addTeam;
+    if(elements.btnResetApp){
+      elements.btnResetApp.onclick = resetApplication;
+    }
     elements.btnShareConfig.onclick = openConfigQr;
     elements.btnConfigQrClose.onclick = closeConfigQr;
     elements.btnEntryQrClose.onclick = closeEntryQrModal;
-    elements.btnLoadConfig.onclick = promptConfigImport;
+    if(elements.btnEntryQrFullscreen){
+      elements.btnEntryQrFullscreen.onclick = ()=>window.open("scanprof-qr.html","_blank");
+    }
     elements.btnOpenPrint.onclick = openPrint;
+    if(elements.cfgChrono){
+      elements.cfgChrono.checked = Boolean(state.config.chrono);
+      elements.cfgChrono.addEventListener("change", ()=>{
+        state.config.chrono = elements.cfgChrono.checked;
+        saveConfig();
+        renderModeButtons();
+        renderParticipantForm();
+        renderTeamForm();
+        updateSessionInfo();
+      });
+    }
 
     elements.modeButtons.forEach(btn=>{
       btn.addEventListener("click", ()=>{
@@ -684,6 +918,9 @@
     });
 
     if(importedFromQuery){
+      if(elements.btnGoConfig) elements.btnGoConfig.style.display = "none";
+      if(elements.btnBackCover1) elements.btnBackCover1.style.display = "none";
+      if(elements.btnBackCover2) elements.btnBackCover2.style.display = "none";
       setPage("entry");
     }
   }

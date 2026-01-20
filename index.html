@@ -22,11 +22,12 @@
   <section id="config" class="page">
     <header class="section-head">
       <div>
-        <h2>Champs à renseigner</h2>
-        <p class="muted">Créez vos observables (texte libre ou menus déroulants) puis partagez la configuration via QR.</p>
+        <h2>Champs observables</h2>
+        <p class="muted">Créez vos menus, partagez la configuration via QR puis laissez les élèves renseigner leurs résultats.</p>
       </div>
       <div class="head-actions">
         <button class="btn btn-amber" id="btnBackCover1">⬅ Accueil</button>
+        <button class="btn btn-red" id="btnResetApp">🔄 Réinitialiser</button>
         <button class="btn btn-blue" id="btnShareConfig">Partager la configuration</button>
       </div>
     </header>
@@ -37,6 +38,13 @@
         <button class="btn btn-green small" id="btnAddField">+ Ajouter un champ</button>
       </div>
       <div id="fieldList"></div>
+      <div class="chrono-toggle">
+        <label class="toggle">
+          <input type="checkbox" id="cfgChrono">
+          <span>Activer le chrono/minuteur individuel</span>
+        </label>
+        <p class="muted small">Permet à chaque élève ou équipe de lancer un chrono depuis sa tablette.</p>
+      </div>
       <p class="muted small">Menus déroulants : une option par ligne. Les abréviations QR sont générées automatiquement.</p>
     </div>
   </section>
@@ -57,7 +65,6 @@
       <div class="mode-switch">
         <button class="btn btn-blue" data-mode="indiv">Mode individuel</button>
         <button class="btn" data-mode="team">Mode collectif</button>
-        <button class="btn btn-light" id="btnLoadConfig">Importer config (JSON)</button>
       </div>
       <div id="modeHint" class="muted small"></div>
     </div>
@@ -68,7 +75,7 @@
           <h3>Participants</h3>
           <button class="btn btn-green small" id="btnAddParticipant">+ Ajouter un élève</button>
         </div>
-        <div id="participantTabs" class="tab-list"></div>
+        <div id="participantTabs" class="tab-grid"></div>
         <div id="participantForm"></div>
       </div>
     </div>
@@ -79,7 +86,7 @@
           <h3>Équipes</h3>
           <button class="btn btn-green small" id="btnAddTeam">+ Ajouter une équipe</button>
         </div>
-        <div id="teamTabs" class="tab-list"></div>
+        <div id="teamTabs" class="tab-grid"></div>
         <div id="teamForm"></div>
       </div>
     </div>
@@ -121,11 +128,13 @@
     <p class="muted small" id="entryQrStatus"></p>
     <div class="qr-box" id="entryQrBox"></div>
     <div class="modal-actions">
+      <button class="btn btn-light" id="btnEntryQrFullscreen">🖥️ Plein écran</button>
       <button class="btn btn-blue" id="btnEntryQrClose">Fermer</button>
     </div>
   </div>
 </div>
 
+<script src="./lz-string.min.js"></script>
 <script src="./qrcode.min.js"></script>
 <script src="./scanprof-export.js"></script>
 <script src="./app.js"></script>
